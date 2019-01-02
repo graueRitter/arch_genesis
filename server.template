@@ -1,0 +1,20 @@
+# host name of server
+name='server'
+# fully qualified domain - so not include host name
+fqdn='example.com'
+# default locale
+locale='en_AU.UTF-8'
+# region and zone combined generate the timezone
+region='Etc'
+zone='UTC'
+# this account will be created and granted sudo rights to all commands
+admin='serveradmin'
+# default name resolution domain
+search_domain='example.com'
+# include subnent mask as number of bits - e.g. 10.0.0.1/24
+ip_address='aaa.bbb.ccc.ddd/ee'
+# name server ip address - e.g. 10.0.0.2
+ns_ip_address='fff.ggg.hhh.iii'
+# default gateway - e.g 10.0.0.254
+gateway='jjj.kkk.lll.mmm'
+
