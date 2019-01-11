@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version=0.0.0
+v_svr_base_chroot_version="0.0.1"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -76,7 +76,7 @@ systemctl enable sshd
 # need networking up first...: timedatectl set-ntp true
 
 # create user(s)
-tmpAdminUser="GR_NAMEadmin"
+tmpAdminUser="GR_ADMIN_ACCOUNT"
 adminUser=${tmpAdminUser,,}
 useradd -g users -m -N $adminUser
 echo "Enter password for $adminUser"

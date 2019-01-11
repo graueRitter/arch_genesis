@@ -8,6 +8,7 @@
 # region = region host is in (for setting timezone)
 # zone = zone host is in (for setting timezone)
 # admin = user name of account that has global sudo access
+#         - created account name is forced to be all lower case
 # search_domain = domain to be appended if only host name given
 # ip_address = IPv4 address of host including subnet mask bits
 # ns_ip_address = IPv4 address of name server
@@ -17,7 +18,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.0.0"
+v_svr_base_version="0.0.1"
 #--------------------------------------------------------------------#
 
 
@@ -44,7 +45,7 @@ function print_usage
 	echo "    \$locale => e.g. en_AU.UTF-8"
 	echo "    \$region => e.g. Etc"
 	echo "    \$zone => e.g. UTC"
-	echo "    \$admin => administration user with global sudo access"
+	echo "    \$admin => administration user with global sudo access. Account name will be all lowercase."
 	echo "  Networking:"
 	echo "    \$search_domain => default domain to be appended if only hostname given"
 	echo "    \$ip_address => IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>\/<subnetmask>"
@@ -281,6 +282,7 @@ sed -e s@"GR_BOOTLOADERDEVICE"@"$bootloader_device"@g /mnt/v_svr_base_chroot.sh 
 sed -e s@"GR_LOCALE"@"$locale"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_REGION"@"$region"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_ZONE"@"$zone"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+sed -e s@"GR_ADMIN_ACCOUNT"@"$admin"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 
 chmod u+x /mnt/v_svr_base_chroot.sh
 
