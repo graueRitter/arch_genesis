@@ -1,0 +1,8 @@
+# either IP: www.xxx.yyy.zzz, or fqdn: www.example.com
+serverURL=''
+# file path and file name of the certificate authority certificate
+serverCertCA=''
+# file path and file name of the server public certificate signed by the CA (above)
+serverCert=''
+# file path and file name of the server certificate key
+serverCertKey=''
