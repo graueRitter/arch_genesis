@@ -8,7 +8,7 @@ Script naming convention:
 
 Operating system install script: <v|p>\_\<svr|wks>\_\<description>.sh
 
-Role install script: <r_<role_name>.sh
+Role install script: r_<role_name>.sh
 
 Where:
 * 'v':			indicates for virtual guest base install (tested on qemu version 2.12.1-1).
@@ -31,10 +31,11 @@ Scripts must be run as root, requires the 'common' subfolder and subfolder whose
 Initial clean install:
 1. Boot into Arch Linux install media.
 2. Copy desired script(s) and dependency folders into /tmp directory (or any other directory with write permissions).
-3. Edit common/mirrorlist and add or uncomment desired mirrors.
-4. Change into directory scripts copied to.
-5. Execute base install script.
-6. Reboot into newly installed operating system and perform post boot tasks (e.g. setting ntp settings as this cannot be performed within chroot).
+3. Create server configuration file (use v_svr_base/server.template as a template).
+4. [Optional] Edit common/mirrorlist and add or uncomment desired mirrors.
+5. Change into directory scripts copied to.
+6. Execute base install script.
+7. Reboot into newly installed operating system and perform post boot tasks (e.g. setting ntp settings as this cannot be performed within chroot).
 
 Role install:
 1. Log in to host.
@@ -56,20 +57,20 @@ https://wiki.archlinux.org/index.php/Installation_guide
 
 ## Contents
 
-### server.template
-Template server configuration file. copy and edit for specific server properties.
-
-### common/mirrorlist
-List of mirrors to download packages. Must be edited before use to enable mirror URLs.
+### v_svr_base.sh
+Performs the initial base install. Includes ssh daemon with login as root denied. Networking is configured using systemd-networkd service and related configuration files.
 
 ### common/list
 Wrapper around the 'ls' command which displays details as well as date and time with timezone offset.
 
-### v_svr_base.sh
-Performs the initial base install. Includes ssh daemon with login as root denied. Networking is configured using systemd-networkd service and related configuration files.
-
-### v_svr_base_chroot.sh
-Performs post base install chroot configurations. As NTP cannot be enabled within chroot this needs to be performed after this script has finished and rebooted.
+### common/mirrorlist.template
+List of mirrors to download packages. Copy to common/mirrorlist and edit to use a custom mirrorlist. Otherwise pacman's mirrorlist will be generated based on country lookup of host's WAN IP.
 
 ### v_svr_base/nftables.config
 Initial firewall configuration file (nftables). Blocks IPv6, allows IPv4 ICMP and ssh.
+
+### v_svr_base/server.template
+Template server configuration file. Copy and edit for specific server properties. Use this file as parameter for v_svr_base.sh script.
+
+### v_svr_base/v_svr_base_chroot.sh
+Performs post base install chroot configurations. As NTP cannot be enabled within chroot this needs to be performed after this script has finished and rebooted.

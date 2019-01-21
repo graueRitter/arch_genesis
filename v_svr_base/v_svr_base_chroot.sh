@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version=0.0.0
+v_svr_base_chroot_version="0.1.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -44,6 +44,7 @@ echo "#--------------------------------------#" >> /etc/hosts
 echo "127.0.0.1 $name.$fqdn $name" >> /etc/hosts
 
 # configure RAM disk image
+echo -e "\e[32mConfigure RAM disk image...\e[0m"
 mkinitcpio -p linux
 
 # enable 1 GiB swap file
@@ -75,20 +76,31 @@ systemctl enable sshd
 #read -p "About to enable NTP time synchronisation"
 # need networking up first...: timedatectl set-ntp true
 
-# create user(s)
-tmpAdminUser="GR_NAMEadmin"
-adminUser=${tmpAdminUser,,}
-useradd -g users -m -N $adminUser
-echo "Enter password for $adminUser"
-passwd $adminUser
-
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
 grub-install --target=i386-pc --boot-directory /boot $bootloader_device
+# configure serial console
+# - also remove grub 'quiet' option
+sed -e s/'GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/'#GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
+echo "" >> /etc/default/grub
+echo "#--------------------------------------#" >> /etc/default/grub
+echo "# Added by v_svr_bash_chroot.sh v$v_svr_base_chroot_version" >> /etc/default/grub
+echo "#--------------------------------------#" >> /etc/default/grub
+echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 console=ttyS0,115200n8"' >> /etc/default/grub
+echo 'GRUB_TERMINAL="console serial"' >> /etc/default/grub
+echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' >> /etc/default/grub
+# create grub2 configuration
 grub-mkconfig -o /boot/grub/grub.cfg
 
+# create admin user
+tmpAdminUser="GR_ADMIN_ACCOUNT"
+adminUser=${tmpAdminUser,,}
+useradd -g users -m -N $adminUser
+echo -e "Enter password for \e[32m$adminUser\e[0m:"
+passwd $adminUser
+
 # Last: change root password
-echo "Change root password:"
+echo -e "Enter password for \e[1;31mroot\e[0m:"
 passwd
 
 #--------------------------------------------------------------------#
@@ -97,7 +109,7 @@ passwd
 rm /v_svr_base_chroot.sh
 #--------------------------------------------------------------------#
 
-read -p "Press any key to finish script and then unmount -R /mnt, and systemctl reboot. Then execute #timedatectl set-ntp true"
+read -p "Press [Enter] key to finish script and then reboot into guest operating system. Then execute #timedatectl set-ntp true"
 echo ""
 #--------------------------------------------------------------------#
 

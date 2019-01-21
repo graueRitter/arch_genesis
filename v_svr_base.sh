@@ -8,6 +8,7 @@
 # region = region host is in (for setting timezone)
 # zone = zone host is in (for setting timezone)
 # admin = user name of account that has global sudo access
+#         - created account name is forced to be all lower case
 # search_domain = domain to be appended if only host name given
 # ip_address = IPv4 address of host including subnet mask bits
 # ns_ip_address = IPv4 address of name server
@@ -17,7 +18,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.0.0"
+v_svr_base_version="0.1.0"
 #--------------------------------------------------------------------#
 
 
@@ -44,7 +45,7 @@ function print_usage
 	echo "    \$locale => e.g. en_AU.UTF-8"
 	echo "    \$region => e.g. Etc"
 	echo "    \$zone => e.g. UTC"
-	echo "    \$admin => administration user with global sudo access"
+	echo "    \$admin => administration user with global sudo access. Account name will be all lowercase."
 	echo "  Networking:"
 	echo "    \$search_domain => default domain to be appended if only hostname given"
 	echo "    \$ip_address => IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>\/<subnetmask>"
@@ -55,7 +56,7 @@ function print_usage
 
 function print_option_file_variables
 {
-	echo '/* -- Validating options file ... --*/'
+	echo '/* -- Validate options file --*/'
 	echo "  Host:"
 	echo "    Host name: $name"
 	echo "    Fully qualified domain name: $fqdn"
@@ -94,11 +95,9 @@ root_partition=/dev/vda2
 # Note that we use `"$@"' to let each command-line parameter expand to a
 # separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-# with scp: TEMP=`getopt --options hn:f:l:r:z:s:u: --long help,name:,fqdn:,locale:,region:,zone:,scproot:,user: -n 'v_svr_base.sh' -- "$@"`
-TEMP=`getopt --options h --long help -n 'v_svr_base.sh' -- "$@"`
+TEMP=$(getopt --options h --long help -n 'v_svr_base.sh' -- "$@")
 
 # check for valid number of parameters
-#  - note: count includes both parameter name and value, so (parameters*2)
 if [[ "$#" -ne 1 ]]
 then
 	print_usage ;
@@ -133,7 +132,7 @@ done
 #--------------------------------------------------------------------#
 # Pre flight checks
 #--------------------------------------------------------------------#
-echo -e "\e[0;34mStarting v_svr_base v$v_svr_base_version\e[0m"
+echo -e "\e[1;34mStarting v_svr_base v$v_svr_base_version\e[0m"
 echo ''
 echo -e "\e[0;32mPerforming preflight checks...\e[0m"
 # check /dev/vda exists
@@ -146,12 +145,11 @@ fi
 print_option_file_variables
 echo ''
 lsblk
-echo -e "\e[0;31mAbout to totally delete $bootloader_device !!! ...\e[0m"
-echo -e "\e[0;31mCheck VERY carefully partition devices! ! ! Ctrl-c to abort, other key to proceed ...\e[0m"
+echo -e "\e[1;31mAbout to totally delete $bootloader_device !!!\e[0m"
+echo -e "\e[1;31mCheck VERY carefully partition devices! ! ! Ctrl-c to abort, [Enter] key to proceed\e[0m"
 read
 echo ''
 #--------------------------------------------------------------------#
-
 
 #--------------------------------------------------------------------#
 # Partition disk
@@ -177,6 +175,43 @@ mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 -L root $root_partition
 echo ""
 #--------------------------------------------------------------------#
 
+#--------------------------------------------------------------------#
+# Get fastest mirrors
+#--------------------------------------------------------------------#
+if [ ! -f ./common/mirrorlist ]; then
+	echo -e "\e[0;32mGetting five quickest mirrors...\e[0m"
+	# install needed packages
+	pacman --noconfirm -Sy pacman-contrib
+	# get WAN IP address
+	IP=$(curl -s ipecho.net/plain)
+	echo -e "\e[0;32m  -> getting country code for IP $IP...\e[0m"
+	# ! Note: ipinfo.io has a rate limit of 1000 per day
+	countryCode=$(curl -s ipinfo.io/$IP/country)
+	# if rate limited (does not return two characters):
+	if [ ${#countryCode} == 2 ]; then
+		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'...\e[0m"
+		if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
+			cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+		fi
+		echo "#--------------------------------------#" > /etc/pacman.d/mirrorlist
+		echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /etc/pacman.d/mirrorlist
+		echo "#--------------------------------------#" >> /etc/pacman.d/mirrorlist
+		echo ''
+		curl -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+		| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
+	else
+		echo -e "\e[0;33m  -> country lookup failed for $IP...\e[0m"
+		echo -e "  -> Return string: $countryCode"
+		echo -e "\e[0;32m  -> using default mirror list...\e[0m"
+	fi
+else
+	echo -e "\e[0;32mUsing ./common/mirrorlist...\e[0m"
+	if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
+		cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+	fi
+	cp ./common/mirrorlist /etc/pacman.d/
+fi
+#--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
 # Install
@@ -199,20 +234,16 @@ echo -e "\e[32mCopying configuration files and base scripts...\e[0m"
 cp -p ./v_svr_base/nftables.conf /mnt/etc
 chmod go-rwx /mnt/etc/nftables.conf
 # add source script for default configuration
-#  single sed line below adds two newlines which is what is wanted,
-#  but begs question: how to insert only single line with sed?
 sed -i '2i#--------------------------------------#' /mnt/etc/nftables.conf
 sed -i "2i# Installed by v_svr_bash.sh v$v_svr_base_version" /mnt/etc/nftables.conf
 sed -i '2i#--------------------------------------#' /mnt/etc/nftables.conf
 sed -i '2i\\n' /mnt/etc/nftables.conf
-
 # copy ls wrapper 'list'
 cp -p ./common/list /mnt/usr/local/bin
 chmod go-w /mnt/usr/local/bin/list
 chmod go+rx /mnt/usr/local/bin/list
-
 # copy mirrorlist
-cp -p ./common/mirrorlist /mnt/etc/pacman.d
+cp -p /etc/pacman.d/mirrorlist /mnt/etc/pacman.d
 #--------------------------------------------------------------------#
 
 
@@ -273,7 +304,7 @@ echo "Gateway=$gateway" >> /mnt/etc/systemd/network/$fqdn.network
 #--------------------------------------------------------------------#
 # copy inside arch-chroot script
 echo -e "\e[32mConfiguring chroot script...\e[0m"
-cp -p ./v_svr_base_chroot.sh /mnt
+cp -p ./v_svr_base/v_svr_base_chroot.sh /mnt
 # substituting in variables from parent (v_svr_base.sh)
 sed -e s/"GR_NAME"/"$name"/g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s/"GR_FQDN"/"$fqdn"/g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
@@ -281,6 +312,7 @@ sed -e s@"GR_BOOTLOADERDEVICE"@"$bootloader_device"@g /mnt/v_svr_base_chroot.sh 
 sed -e s@"GR_LOCALE"@"$locale"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_REGION"@"$region"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_ZONE"@"$zone"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+sed -e s@"GR_ADMIN_ACCOUNT"@"$admin"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 
 chmod u+x /mnt/v_svr_base_chroot.sh
 
