@@ -10,7 +10,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_nginx_version="0.0.0"
+r_nginx_version="0.1.0"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -182,7 +182,7 @@ fi
 print_option_file_variables
 echo ''
 echo -e "\e[0;31mAbout to install nginx web server (https://$serverURL) to /srv/html/root ...\e[0m"
-echo -e "\e[0;31mCtrl-c to abort, other key to proceed ...\e[0m"
+echo -e "\e[0;31mCtrl-c to abort, [Enter] key to proceed ...\e[0m"
 read
 echo ''
 #--------------------------------------------------------------------#
@@ -194,7 +194,7 @@ echo ''
 #  https://unix.stackexchange.com/questions/52277/pacman-option-to-assume-yes-to-every-question
 #  - will break if pacman asks for a selection. Perform manual '-syu' first then just '-S'?
 echo -e "\e[32mInstalling: $installString ...\e[0m"
-pacman -S $installString
+pacman --noconfirm -S $installString
 # or pacman -Syu --noconfirm $installString ?
 
 #--------------------------------------------------------------------#
@@ -244,6 +244,22 @@ echo "#--------------------------------------#" >> /etc/nginx/nginx.conf
 echo "" >> /etc/nginx/nginx.conf
 cat r_nginx/nginx.conf >> /etc/nginx/nginx.conf
 
+# nginx does not always start in default 90 seconds for systemd service
+# - three minutes empirically determined to work
+# - from core dump may have something to do with waiting for entropy?
+if [ -f /etc/systemd/system/nginx.service.d/override.conf ]
+then
+	mv /etc/systemd/system/nginx.service.d/override.conf /etc/systemd/system/nginx.service.d/override.conf.original ;
+else
+	mkdir -p /etc/systemd/system/nginx.service.d ;
+fi
+echo "#--------------------------------------#" > /etc/systemd/system/nginx.service.d/override.conf
+echo "# Installed by r_nginx.sh v$r_nginx_version" >> /etc/systemd/system/nginx.service.d/override.conf
+echo "#--------------------------------------#" >> /etc/systemd/system/nginx.service.d/override.conf
+echo "" >> /etc/systemd/system/nginx.service.d/override.conf
+echo '[Service]' >> /etc/systemd/system/nginx.service.d/override.conf
+echo 'TimeoutStartSec=300' >> /etc/systemd/system/nginx.service.d/override.conf
+
 # run nginx as unprivileged - not working, still permission errors
 # - e.g. binding to 0.0.0.0:80
 ##if [ -f /etc/systemd/system/nginx.service.d/override.conf ]
@@ -271,28 +287,6 @@ cp -a /usr/share/nginx/html/* /srv/html/root
 
 #----------------------------- PHP-FPM ------------------------------#
 # default php-fpm confguration
-if [ -f /etc/php/php.ini ]
-then
-	mv /etc/php/php.ini /etc/php/php.ini.original ;
-fi
-echo ";--------------------------------------;" > /etc/php/php.ini
-echo "; Installed by r_nginx.sh v$r_nginx_version" >> /etc/php/php.ini
-echo ";--------------------------------------;" >> /etc/php/php.ini
-echo "" >> /etc/php/php.ini
-cat r_nginx/php.ini >> /etc/php/php.ini
-chmod go-wx /etc/php/php.ini
-chmod go+r /etc/php/php.ini
-if [ -f /etc/php/php-fpm.conf ]
-then
-	mv /etc/php/php-fpm.conf /etc/php/php-fpm.conf.original ;
-fi
-echo ";--------------------------------------;" > /etc/php/php-fpm.conf
-echo "; Installed by r_nginx.sh v$r_nginx_version" >> /etc/php/php-fpm.conf
-echo ";--------------------------------------;" >> /etc/php/php-fpm.conf
-echo "" >> /etc/php/php-fpm.conf
-cat r_nginx/php-fpm.conf >> /etc/php/php-fpm.conf
-chmod go-wx /etc/php/php-fpm.conf
-chmod go+r /etc/php/php-fpm.conf
 if [ -f /etc/php/php-fpm.d/www.conf ]
 then
 	mv /etc/php/php-fpm.d/www.conf /etc/php/php-fpm.d/www.conf.original ;
