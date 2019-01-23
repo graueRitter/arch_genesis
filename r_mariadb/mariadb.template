@@ -1,0 +1,3 @@
+# database instance to create
+# - instance will be created in: /srv/databases/$databaseInstance
+databaseInstance='mariadb0'
