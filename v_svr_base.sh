@@ -18,7 +18,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.1.0"
+v_svr_base_version="0.2.0"
 #--------------------------------------------------------------------#
 
 
@@ -31,7 +31,6 @@ function print_usage
 	# does this script really require guest options?
 	#  - main requirement is 1M partition is for SeaBIOS to boot GPT disk
 	echo 'Requires guest created with qemu settings (others may work):'
-	echo "- machine='pc' # actually alias for 'pc-440fx-2.1'"
 	echo "- virt_type='kvm'"
 	echo "- virtioSupport='true'"
 	echo "- architecture='x86_64'"
@@ -48,6 +47,7 @@ function print_usage
 	echo "    \$admin => administration user with global sudo access. Account name will be all lowercase."
 	echo "  Networking:"
 	echo "    \$search_domain => default domain to be appended if only hostname given"
+	echo "    \$ip_link => link name assigned by operating system"
 	echo "    \$ip_address => IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>\/<subnetmask>"
 	echo "    \$ns_ip_address => name server IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>"
 	echo "    \$gateway => gateway IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>"
@@ -65,6 +65,7 @@ function print_option_file_variables
 	echo "    Time zone: $zone"
 	echo "    Administration account: $admin"
 	echo "  Networking:"
+	echo "    Link name: $ip_link"
 	echo "    Host IPv4 address: $ip_address"
 	echo "    Search domain: $search_domain"
 	echo "    Name server IPv4 address: $ns_ip_address"
@@ -287,7 +288,7 @@ echo "#--------------------------------------#" >> /mnt/etc/systemd/network/$fqd
 echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/systemd/network/$fqdn.network
 echo "#--------------------------------------#" >> /mnt/etc/systemd/network/$fqdn.network
 echo "[Match]" >> /mnt/etc/systemd/network/$fqdn.network
-echo "Name=ens3" >> /mnt/etc/systemd/network/$fqdn.network
+echo "Name=$ip_link" >> /mnt/etc/systemd/network/$fqdn.network
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
 echo "[Link]" >> /mnt/etc/systemd/network/$fqdn.network
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
