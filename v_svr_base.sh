@@ -18,7 +18,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.2.0"
+v_svr_base_version="0.2.1"
 #--------------------------------------------------------------------#
 
 
@@ -224,7 +224,7 @@ mkdir /mnt/boot
 
 # install minimum packages
 echo -e "\e[32mInstalling base operating system...\e[0m"
-pacstrap /mnt base sudo grub intel-ucode nftables openssh
+pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh
 
 # generate boot loaded file systems
 echo -e "\e[32mGenerating /etc/fstab...\e[0m"
