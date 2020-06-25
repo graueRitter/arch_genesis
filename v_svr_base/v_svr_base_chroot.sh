@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.1.0"
+v_svr_base_chroot_version="0.2.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -62,19 +62,19 @@ echo '/swapfile none swap defaults 0 0' >> /etc/fstab
 
 # enable network
 echo -e "\e[32mEnabling network...\e[0m"
-systemctl enable systemd-networkd
+systemctl enable systemd-networkd.service
 
 # enable nftables firewall
 echo -e "\e[32mEnabling nftables firewall...\e[0m"
-systemctl enable nftables
+systemctl enable nftables.service
 
 #enable ssh daemon
 echo -e "\e[32mEnabling ssh access...\e[0m"
-systemctl enable sshd
+systemctl enable sshd.service
 
 # enable NTP datetime synchronisation
-#read -p "About to enable NTP time synchronisation"
-# need networking up first...: timedatectl set-ntp true
+echo -e "\e[32mEnabling NTP datetime synchronisation...\e[0m"
+systemctl enable systemd-timesyncd.service
 
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
@@ -109,7 +109,7 @@ passwd
 rm /v_svr_base_chroot.sh
 #--------------------------------------------------------------------#
 
-read -p "Press [Enter] key to finish script and then reboot into guest operating system. Then execute #timedatectl set-ntp true"
+read -p "Press [Enter] key to finish script and then reboot into guest operating system."
 echo ""
 #--------------------------------------------------------------------#
 
