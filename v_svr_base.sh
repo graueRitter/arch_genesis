@@ -18,7 +18,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.2.2"
+v_svr_base_version="0.3.2"
 #--------------------------------------------------------------------#
 
 
@@ -235,7 +235,7 @@ echo ''
 
 # install minimum packages
 echo -e "\e[32mInstalling base operating system...\e[0m"
-pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh
+pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent
 echo ''
 
 # generate boot loaded file systems

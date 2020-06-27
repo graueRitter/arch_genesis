@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.4.0"
+v_svr_base_chroot_version="0.5.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -84,6 +84,12 @@ echo ''
 echo -e "\e[32mEnabling NTP datetime synchronisation...\e[0m"
 systemctl enable systemd-timesyncd.service
 echo ''
+
+# enable qemu guest agent
+echo -e "\e[32mEnabling qemu guest agent...\e[0m"
+systemctl enable qemu-ga.service
+echo ''
+
 
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
