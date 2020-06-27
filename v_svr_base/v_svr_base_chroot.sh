@@ -20,6 +20,7 @@ zone=GR_ZONE
 echo -e "\e[32mSeting timezone and clock...\e[0m"
 ln -s -f /usr/share/zoneinfo/$region/$zone /etc/localtime
 hwclock --systohc
+echo ''
 
 # set locale to en_AU.UTF-8
 echo -e "\e[32mSeting locale...\e[0m"
@@ -29,6 +30,7 @@ locale-gen
 # update /etc/locale.conf
 echo LANG=$locale > /etc/locale.conf
 cat /etc/locale.conf
+echo ''
 
 # Add hostname
 echo -e "\e[32mSeting host name...\e[0m"
@@ -42,10 +44,12 @@ echo "#--------------------------------------#" >> /etc/hosts
 echo "# Added by v_svr_bash_chroot.sh v$v_svr_base_chroot_version" >> /etc/hosts
 echo "#--------------------------------------#" >> /etc/hosts
 echo "127.0.0.1 $name.$fqdn $name" >> /etc/hosts
+echo ''
 
 # configure RAM disk image
 echo -e "\e[32mConfigure RAM disk image...\e[0m"
 mkinitcpio -p linux
+echo ''
 
 # enable 1 GiB swap file
 echo -e "\e[32mCreating 1 GiB swap file...\e[0m"
@@ -59,22 +63,27 @@ echo "#--------------------------------------#" >> /etc/fstab
 echo "# Added by v_svr_bash_chroot.sh v$v_svr_base_chroot_version" >> /etc/fstab
 echo "#--------------------------------------#" >> /etc/fstab
 echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+echo ''
 
 # enable network
 echo -e "\e[32mEnabling network...\e[0m"
 systemctl enable systemd-networkd.service
+echo ''
 
 # enable nftables firewall
 echo -e "\e[32mEnabling nftables firewall...\e[0m"
 systemctl enable nftables.service
+echo ''
 
 #enable ssh daemon
 echo -e "\e[32mEnabling ssh access...\e[0m"
 systemctl enable sshd.service
+echo ''
 
 # enable NTP datetime synchronisation
 echo -e "\e[32mEnabling NTP datetime synchronisation...\e[0m"
 systemctl enable systemd-timesyncd.service
+echo ''
 
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
@@ -97,6 +106,7 @@ echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no -
 echo 'GRUB_DISABLE_RECOVERY=false' >> /etc/default/grub
 # create grub2 configuration
 grub-mkconfig -o /boot/grub/grub.cfg
+echo ''
 
 # create admin user
 tmpAdminUser="GR_ADMIN_ACCOUNT"
@@ -104,10 +114,12 @@ adminUser=${tmpAdminUser,,}
 useradd -g users -m -N $adminUser
 echo -e "Enter password for \e[32m$adminUser\e[0m:"
 passwd $adminUser
+echo ''
 
 # Last: change root password
 echo -e "Enter password for \e[1;31mroot\e[0m:"
 passwd
+echo ''
 
 #--------------------------------------------------------------------#
 # Cleanup
@@ -116,7 +128,7 @@ rm /v_svr_base_chroot.sh
 #--------------------------------------------------------------------#
 
 read -p "Press [Enter] key to finish script and then reboot into guest operating system."
-echo ""
+echo ''
 #--------------------------------------------------------------------#
 
 

@@ -15,11 +15,11 @@ admin='serveradmin'
 # default name resolution domain
 search_domain='example.com'
 # This must match the name Arch Linux gives the network interface
-#  name is usually based on qemu (3.1.0-2) machine:
+#  name is usually based on qemu (3.1.0-2) machine type:
 #  'pc-i440fx-3.1' ('pc'): 'ens3' (first network interface name)
 #  'pc-q35-3.1' ('q35'): 'enp1s0' (first network interface name)
 ip_link='enp1s0'
-# include subnent mask as number of bits - e.g. 10.0.0.1/24
+# include subnet mask as number of bits - e.g. 10.0.0.1/24
 ip_address='aaa.bbb.ccc.ddd/ee'
 # name server ip address - e.g. 10.0.0.2
 ns_ip_address='fff.ggg.hhh.iii'
