@@ -164,7 +164,7 @@ STARTSECTOR=$(sgdisk -F $bootloader_device)
 ENDSECTOR=$(sgdisk -E $bootloader_device)
 sgdisk -n 2:$STARTSECTOR:$ENDSECTOR -c 2:"root" -t 2:8300 $bootloader_device
 sgdisk -p $bootloader_device
-echo ""
+echo ''
 #--------------------------------------------------------------------#
 
 
@@ -173,7 +173,7 @@ echo ""
 #--------------------------------------------------------------------#
 echo -e "\e[32mFormating root partition...\e[0m"
 mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 -L root $root_partition
-echo ""
+echo ''
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
@@ -212,6 +212,7 @@ else
 	fi
 	cp ./common/mirrorlist /etc/pacman.d/
 fi
+echo ''
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
@@ -219,7 +220,7 @@ fi
 #--------------------------------------------------------------------#
 echo -e "\e[32mUpdating install instance keys...\e[0m"
 pacman  --noconfirm -Sy archlinux-keyring
-echo ""
+echo ''
 #--------------------------------------------------------------------#
 
 
@@ -230,14 +231,17 @@ echo ""
 echo -e "\e[32mMounting partitions...\e[0m"
 mount $root_partition /mnt
 mkdir /mnt/boot
+echo ''
 
 # install minimum packages
 echo -e "\e[32mInstalling base operating system...\e[0m"
 pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh
+echo ''
 
 # generate boot loaded file systems
 echo -e "\e[32mGenerating /etc/fstab...\e[0m"
 genfstab -U /mnt >> /mnt/etc/fstab
+echo ''
 
 echo -e "\e[32mCopying configuration files and base scripts...\e[0m"
 # add nftables base configuration
@@ -254,6 +258,7 @@ chmod go-w /mnt/usr/local/bin/list
 chmod go+rx /mnt/usr/local/bin/list
 # copy mirrorlist
 cp -p /etc/pacman.d/mirrorlist /mnt/etc/pacman.d
+echo ''
 #--------------------------------------------------------------------#
 
 
@@ -269,6 +274,7 @@ echo "#--------------------------------------#" >> /mnt/etc/ssh/sshd_config
 echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/ssh/sshd_config
 echo "#--------------------------------------#" >> /mnt/etc/ssh/sshd_config
 echo "PermitRootLogin no" >> /mnt/etc/ssh/sshd_config
+echo ''
 
 # configure sudo
 echo -e "\e[32mConfiguring sudo...\e[0m"
@@ -281,6 +287,7 @@ echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/sudoers
 echo "#--------------------------------------#" >> /mnt/etc/sudoers
 echo "User_Alias      ADMINS_SUDO = $adminUser" >> /mnt/etc/sudoers
 echo "ADMINS_SUDO $name=(ALL) ALL" >> /mnt/etc/sudoers
+echo ''
 
 # configure networking
 echo -e "\e[32mConfiguring network...\e[0m"
@@ -306,6 +313,7 @@ echo "Address=$ip_address" >> /mnt/etc/systemd/network/$fqdn.network
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
 echo "[Route]" >> /mnt/etc/systemd/network/$fqdn.network
 echo "Gateway=$gateway" >> /mnt/etc/systemd/network/$fqdn.network
+echo ''
 #--------------------------------------------------------------------#
 
 
@@ -323,6 +331,7 @@ sed -e s@"GR_LOCALE"@"$locale"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.
 sed -e s@"GR_REGION"@"$region"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_ZONE"@"$zone"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
 sed -e s@"GR_ADMIN_ACCOUNT"@"$admin"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+echo ''
 
 chmod u+x /mnt/v_svr_base_chroot.sh
 
