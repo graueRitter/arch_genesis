@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.3.0"
+v_svr_base_chroot_version="0.4.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -79,8 +79,9 @@ systemctl enable systemd-timesyncd.service
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
 grub-install --target=i386-pc --boot-directory /boot $bootloader_device
-# remove grub 'quiet' option
-sed -e s/'GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/'#GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
+# replace GRUB_CMDLINE_LINUX and GRUB_CMDLINE_LINUX_DEFAULT options
+sed -e s/'GRUB_CMDLINE_LINUX'/'#GRUB_CMDLINE_LINUX'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
+sed -e s/'GRUB_CMDLINE_LINUX_DEFAULT'/'#GRUB_CMDLINE_LINUX_DEFAULT'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
 # enable recovery mode (below)
 sed -e s/'GRUB_DISABLE_RECOVERY'/'#GRUB_CMDLINE_LINUX_DEFAULT'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
 echo "" >> /etc/default/grub
@@ -88,7 +89,8 @@ echo "#--------------------------------------#" >> /etc/default/grub
 echo "# Added by v_svr_bash_chroot.sh v$v_svr_base_chroot_version" >> /etc/default/grub
 echo "#--------------------------------------#" >> /etc/default/grub
 # configure serial console
-echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 console=ttyS0,115200n8"' >> /etc/default/grub
+echo 'GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200n8"' >> /etc/default/grub
+echo 'GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet"' >> /etc/default/grub
 echo 'GRUB_TERMINAL="console serial"' >> /etc/default/grub
 echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' >> /etc/default/grub
 # enable recovery mode menu item(s)
