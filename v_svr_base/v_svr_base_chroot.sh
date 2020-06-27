@@ -2,7 +2,7 @@
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.2.0"
+v_svr_base_chroot_version="0.3.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -79,16 +79,20 @@ systemctl enable systemd-timesyncd.service
 # install boot loaders
 echo -e "\e[32mInstalling boot loader...\e[0m"
 grub-install --target=i386-pc --boot-directory /boot $bootloader_device
-# configure serial console
-# - also remove grub 'quiet' option
+# remove grub 'quiet' option
 sed -e s/'GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/'#GRUB_CMDLINE_LINUX_DEFAULT="quiet"'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
+# enable recovery mode (below)
+sed -e s/'GRUB_DISABLE_RECOVERY'/'#GRUB_CMDLINE_LINUX_DEFAULT'/g /etc/default/grub > /etc/default/grub.tmp && mv --force /etc/default/grub.tmp /etc/default/grub
 echo "" >> /etc/default/grub
 echo "#--------------------------------------#" >> /etc/default/grub
 echo "# Added by v_svr_bash_chroot.sh v$v_svr_base_chroot_version" >> /etc/default/grub
 echo "#--------------------------------------#" >> /etc/default/grub
+# configure serial console
 echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 console=ttyS0,115200n8"' >> /etc/default/grub
 echo 'GRUB_TERMINAL="console serial"' >> /etc/default/grub
 echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' >> /etc/default/grub
+# enable recovery mode menu item(s)
+echo 'GRUB_DISABLE_RECOVERY=false' >> /etc/default/grub
 # create grub2 configuration
 grub-mkconfig -o /boot/grub/grub.cfg
 
