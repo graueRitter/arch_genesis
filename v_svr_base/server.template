@@ -26,3 +26,13 @@ ns_ip_address='fff.ggg.hhh.iii'
 # default gateway - e.g 10.0.0.254
 gateway='jjj.kkk.lll.mmm'
 #**********************#
+
+#**********************#
+#   Optional options   #
+#**********************#
+# http proxy settings - e.g.:
+#  http://<proxy host name or IP address>[:<port>]/
+#  http://<user>:<password>@<proxy host name or IP address>[:<port>]/
+install_http_proxy=''
+install_https_proxy=''
+#**********************#

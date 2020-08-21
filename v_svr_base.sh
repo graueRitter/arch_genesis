@@ -82,6 +82,22 @@ function print_partition_prerequisites
 	echo 'Are you sure this is a qemu/KVM virtual machine?'
 	echo '/* -- End Partition prerequisites -- */'
 }
+
+function set_install_proxy
+{
+	if [ -n "$install_http_proxy" ];
+	then
+		echo -e "\e[32mExporting http_proxy as '$install_http_proxy'...\e[0m"
+		export http_proxy="$install_http_proxy";
+		echo ''
+	fi
+	if [ -n "$install_https_proxy" ];
+	then
+		echo -e "\e[32mExporting https_proxy as '$install_https_proxy'...\e[0m"
+		export https_proxy="$install_https_proxy";
+		echo ''
+	fi
+}
 #--------------------------------------------------------------------#
 
 
@@ -124,17 +140,20 @@ done
 #--------------------------------------------------------------------#
 
 
+echo -e "\e[1;34mStarting v_svr_base v$v_svr_base_version\e[0m"
+echo ''
+
 #--------------------------------------------------------------------#
 # Load options
 #--------------------------------------------------------------------#
 . $1
+# set proxy if needed
+set_install_proxy
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
 # Pre flight checks
 #--------------------------------------------------------------------#
-echo -e "\e[1;34mStarting v_svr_base v$v_svr_base_version\e[0m"
-echo ''
 echo -e "\e[0;32mPerforming preflight checks...\e[0m"
 # check /dev/vda exists
 if [[ ! $(lsblk -o NAME) =~ "vda" ]]
