@@ -47,9 +47,14 @@ echo "127.0.0.1 $name.$fqdn $name" >> /etc/hosts
 echo ''
 
 # configure RAM disk image
-echo -e "\e[32mConfigure RAM disk image...\e[0m"
-mkinitcpio -p linux
-echo ''
+# performed as part of pacstrap in v_svr_base.sh
+# only needed if RAM disk image configuration changes 
+#  post pacstrap
+# if this script makes changes to RAM disk image settings then 
+#  reinstate below lines
+#echo -e "\e[32mConfigure RAM disk image...\e[0m"
+#mkinitcpio -p linux
+#echo ''
 
 # enable 1 GiB swap file
 echo -e "\e[32mCreating 1 GiB swap file...\e[0m"
