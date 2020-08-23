@@ -98,6 +98,29 @@ function set_install_proxy
 		echo ''
 	fi
 }
+
+function set_editor
+{
+	case "$text_editor" in
+		vi)
+			selected_editor='vi'
+			;;
+		vim)
+			selected_editor='vim'
+			;;
+		nano)
+			selected_editor='nano'
+			;;
+		emacs)
+			selected_editor='emacs'
+			;;
+		*)
+			selected_editor=''
+			;;
+	esac
+
+
+}
 #--------------------------------------------------------------------#
 
 
@@ -149,6 +172,7 @@ echo ''
 . $1
 # set proxy if needed
 set_install_proxy
+set_editor
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
@@ -254,7 +278,7 @@ echo ''
 
 # install minimum packages
 echo -e "\e[32mInstalling base operating system...\e[0m"
-pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent
+pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent $selected_editor
 echo ''
 
 # generate boot loaded file systems
