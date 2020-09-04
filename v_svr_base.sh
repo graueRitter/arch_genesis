@@ -13,12 +13,16 @@
 # ip_address = IPv4 address of host including subnet mask bits
 # ns_ip_address = IPv4 address of name server
 # gateway = IPv4 address of gateway
+# installer_http_proxy = [optional ] http proxy string
+# installer_https_proxy = [optional] https proxy string
+# text_editor = [optional] text editor: < vi | vim | nano | emacs >
+
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.2"
+v_svr_base_version="0.3.3"
 #--------------------------------------------------------------------#
 
 
@@ -36,7 +40,7 @@ function print_usage
 	echo "- architecture='x86_64'"
 	echo "- cpu='host'"
 	echo ''
-	echo 'Syntax: v_svr_base.sh <configuration file>' >&2 ;
+	echo 'Syntax: v_svr_base.sh <configuration file>'
 	echo "Where configuration file defines the following variables:"
 	echo "  Host:"
 	echo "    \$name => host name"
@@ -51,6 +55,10 @@ function print_usage
 	echo "    \$ip_address => IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>\/<subnetmask>"
 	echo "    \$ns_ip_address => name server IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>"
 	echo "    \$gateway => gateway IPv4 address: <octet 1>.<octet 2>.<octet 3>.<octet 4>"
+	echo "  Optional:"
+	echo "    \$installer_http_proxy => Installer http proxy string: optional"
+	echo "    \$installer_https_proxy => Installer https proxy string: optional"
+	echo "    \$text_editor => Text editor: optional  (default is no text editor) < vi | vim | nano | emacs >"
 	echo '/* -- End Help -- */'
 }
 
@@ -69,7 +77,11 @@ function print_option_file_variables
 	echo "    Host IPv4 address: $ip_address"
 	echo "    Search domain: $search_domain"
 	echo "    Name server IPv4 address: $ns_ip_address"
-	echo "    Gateway address: $gateway"
+	echo "    Gateway IPv4 address: $gateway"
+	echo "  Optional:"
+	echo "    Installer http proxy: $installer_http_proxy"
+	echo "    Installer https proxy: $installer_https_proxy"
+	echo "    Text editor: $text_editor"
 }
 
 function print_partition_prerequisites
@@ -83,18 +95,18 @@ function print_partition_prerequisites
 	echo '/* -- End Partition prerequisites -- */'
 }
 
-function set_install_proxy
+function set_installer_proxy
 {
-	if [ -n "$install_http_proxy" ];
+	if [ -n "$installer_http_proxy" ];
 	then
-		echo -e "\e[32mExporting http_proxy as '$install_http_proxy'...\e[0m"
-		export http_proxy="$install_http_proxy";
+		echo -e "\e[32mExporting http_proxy as '$installer_http_proxy'...\e[0m"
+		export http_proxy="$installer_http_proxy";
 		echo ''
 	fi
-	if [ -n "$install_https_proxy" ];
+	if [ -n "$installer_https_proxy" ];
 	then
-		echo -e "\e[32mExporting https_proxy as '$install_https_proxy'...\e[0m"
-		export https_proxy="$install_https_proxy";
+		echo -e "\e[32mExporting https_proxy as '$installer_https_proxy'...\e[0m"
+		export https_proxy="$installer_https_proxy";
 		echo ''
 	fi
 }
@@ -118,8 +130,30 @@ function set_editor
 			selected_editor=''
 			;;
 	esac
+}
 
-
+function validate_options
+{
+	echo -e "\e[0;32mValidating values in configuration file '$1'...\e[0m"
+	echo -e "\e[0;32m  -> validating host IP address: $ip_address...\e[0m"
+	if !($(is_valid_ipv4_with_subnet_mask $ip_address))
+	then
+		echo -e "\e[0;31m       host IP address $ip_address is invalid\e[0m";
+		exit 1;
+	fi
+	echo -e "\e[0;32m  -> validating name server IP address: $ns_ip_address...\e[0m"
+	if !($(is_valid_ipv4 $ns_ip_address))
+	then
+		echo -e "\e[0;31m       name server IP address $ns_ip_address is invalid\e[0m";
+		exit 1;
+	fi
+	echo -e "\e[0;32m  -> validating default gateway IP address: $gateway...\e[0m"
+	if !($(is_valid_ipv4 $gateway))
+	then
+		echo -e "\e[0;31m       default gateway IP address $gateway is invalid\e[0m";
+		exit 1;
+	fi
+	echo ''
 }
 #--------------------------------------------------------------------#
 
@@ -138,6 +172,7 @@ root_partition=/dev/vda2
 TEMP=$(getopt --options h --long help -n 'v_svr_base.sh' -- "$@")
 
 # check for valid number of parameters
+#  - note: count includes both parameter name and value, so (parameters*2)
 if [[ "$#" -ne 1 ]]
 then
 	print_usage ;
@@ -170,8 +205,12 @@ echo ''
 # Load options
 #--------------------------------------------------------------------#
 . $1
+# validate - partially - some of the options
+source ./common/functions
+validate_options $1
 # set proxy if needed
-set_install_proxy
+set_installer_proxy
+# set text editor if wanted
 set_editor
 #--------------------------------------------------------------------#
 

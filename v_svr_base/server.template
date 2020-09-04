@@ -3,7 +3,7 @@
 #**********************#
 # host name of server
 name='server'
-# fully qualified domain - so not include host name
+# fully qualified domain - not including host name
 fqdn='example.com'
 # default locale
 locale='en_AU.UTF-8'
@@ -33,8 +33,8 @@ gateway='jjj.kkk.lll.mmm'
 # http proxy settings - e.g.:
 #  http://<proxy host name or IP address>[:<port>]/
 #  http://<user>:<password>@<proxy host name or IP address>[:<port>]/
-install_http_proxy=''
-install_https_proxy=''
+installer_http_proxy=''
+installer_https_proxy=''
 
 # editor
 # valid editors:
