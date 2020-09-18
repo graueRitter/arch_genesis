@@ -1,4 +1,6 @@
 #!/bin/bash
+source ./common/functions
+
 #--------------------------------------------------------------------#
 # Parameters
 #--------------------------------------------------------------------#
@@ -9,7 +11,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_mariadb_version="0.0.0"
+r_mariadb_version="0.0.1"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -82,14 +84,14 @@ while true ; do
 done
 #--------------------------------------------------------------------#
 
+echo -e "\e[0;34mStarting r_mariadb.sh v$r_mariadb_version\e[0m"
+echo ''
+
 #--------------------------------------------------------------------#
 # Load options
 #--------------------------------------------------------------------#
 . $1
 #--------------------------------------------------------------------#
-
-echo -e "\e[0;32mStarting r_mariadb v$r_mariadb_version\e[0m"
-echo ''
 
 #--------------------------------------------------------------------#
 # Pre flight checks
@@ -107,9 +109,9 @@ if [[ $(id -u) -ne 0 ]] ; then echo -e "\e[0;31mPlease run as root\e[0m" ; exit 
 srvMount=`cat /etc/fstab | egrep -v "^[[:blank:]]*(#|$)" | grep 'srv'`
 if [[ $srvMount != *"nosuid"* || $srvMount != *"noexec"* ]]  ;
 then
-	echo -e "\e[0;33m--> Warning: html root not mounted without noexec and/or nosuid options:\e[0m" ;
-	echo "  /etc/fstab:"
-	cat /etc/fstab | grep '/srv' ;
+	echo -e "\e[0;33m--> Warning: html root not mounted without noexec and/or nosuid options\e[0m" ;
+	# should not show as may be part of "/" filesystem: echo "  /etc/fstab:"
+	# should not show as may be part of "/" filesystem: cat /etc/fstab | grep '/srv' ;
 	echo ''
 else
 	echo -e "\e[0;32m--> Checked noexec and nosuid mount option: Ok\e[0m" ;
@@ -153,8 +155,10 @@ echo ''
 if [[ $installString != '' ]] ;
 then
 	echo -e "\e[32m--> Installing: $installString...\e[0m"
+	current_task="Installing packages"
 	pacman --noconfirm -S $installString
-# or pacman -Syu --noconfirm $installString ?
+	# or pacman -Syu --noconfirm $installString ?
+	exit_on_error $? "$current_task"
 fi
 
 #--------------------------------------------------------------------#
@@ -181,9 +185,11 @@ echo -e "\e[32m--> Configuring MariaDB database in /srv/databases/$databaseInsta
 #------------------------------ mariadb -----------------------------#
 
 # create data directory
+current_task='Create MariaDB data directory'
 if [ ! -d "/srv/databases/$databaseInstance" ]; 
 then
 	mkdir -p "/srv/databases/$databaseInstance"
+	exit_on_error $? "$current_task"
 fi
 
 ### check if filesystem fixes needed (cannot perform in preflight as directory must exist first)
@@ -201,50 +207,81 @@ fi
 ##fi
 
 # configure MariaDB instance
+current_task='Configure MariaDB database instance'
 mysql_install_db --user=mysql --basedir=/usr --datadir="/srv/databases/$databaseInstance"
+exit_on_error $? "$current_task"
 # ensure correct ownership - may not be necessary?
 chown --recursive mysql:mysql "/srv/databases/$databaseInstance"
+exit_on_error $? !"$current_task"
 chmod --recursive go-rwx "/srv/databases/$databaseInstance"
+exit_on_error $? "$current_task"
 # point to data directory in my.cnf
 if [ -f /etc/mysql/my.cnf ]
 then
 	cp -a /etc/mysql/my.cnf /etc/mysql/my.cnf.original ;
+	exit_on_error $? "$current_task"
 fi
 echo '' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "# Installed by r_mariadb.sh v$r_mariadb_version" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '[client]' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo 'default-character-set = utf8mb4' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '[mysqld]' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "datadir = '/srv/databases/$databaseInstance'" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo 'collation_server = utf8mb4_unicode_ci' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo 'character_set_server = utf8mb4' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo 'innodb_file_per_table = 1' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo '[mysql]' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 echo 'default-character-set = utf8mb4' >> /etc/mysql/my.cnf
+exit_on_error $? "$current_task"
 
 #--------------------------------------------------------------------#
 # Enable, start, and secure
 #--------------------------------------------------------------------#
-echo -e "\e[32m--> Enabling and starting database services...\e[0m"
+echo -e "\e[32m--> Enabling and starting database service...\e[0m"
+current_task='Enabling and starting MariaDB database service'
 systemctl enable mariadb
+exit_on_error $? "$current_task"
 systemctl start mariadb
+exit_on_error $? "$current_task"
 # secure MariaDB instance
-#  - for some reason not yet resolved need to restart, or ;root'
+#  - for some reason not yet resolved need to restart, or 'root'
 #    cannot login from 'localhost'.
 #systemctl restart mariadb
-echo -e "\e[32m--> Securing database...\e[0m"
+echo -e "\e[32m--> Securing MariaDB database...\e[0m"
+current_task='Securing database'
 # mysql_secure_installation ignores my.cnf and uses socket /run/mysqld/mysqld.sock
 ln -s /run/mysqld/mysqld-$databaseInstance.sock /run/mysqld/mysqld.sock
+exit_on_error $? "$current_task"
 mysql_secure_installation
+exit_on_error $? "$current_task"
 rm /run/mysqld/mysqld.sock
+exit_on_error $? "$current_task"
 systemctl restart mariadb
+exit_on_error $? "$current_task"
 
 #--------------------------------------------------------------------#
 

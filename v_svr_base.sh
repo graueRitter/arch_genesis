@@ -1,4 +1,7 @@
 #!/bin/bash
+set -o history -o histexpand
+source ./common/functions
+
 #--------------------------------------------------------------------#
 # Options file variables
 #--------------------------------------------------------------------#
@@ -22,7 +25,7 @@
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.3"
+v_svr_base_version="0.3.4"
 #--------------------------------------------------------------------#
 
 
@@ -136,19 +139,19 @@ function validate_options
 {
 	echo -e "\e[0;32mValidating values in configuration file '$1'...\e[0m"
 	echo -e "\e[0;32m  -> validating host IP address: $ip_address...\e[0m"
-	if !($(is_valid_ipv4_with_subnet_mask $ip_address))
+	if ! ($(is_valid_ipv4_with_subnet_mask $ip_address))
 	then
 		echo -e "\e[0;31m       host IP address $ip_address is invalid\e[0m";
 		exit 1;
 	fi
 	echo -e "\e[0;32m  -> validating name server IP address: $ns_ip_address...\e[0m"
-	if !($(is_valid_ipv4 $ns_ip_address))
+	if ! ($(is_valid_ipv4 $ns_ip_address))
 	then
 		echo -e "\e[0;31m       name server IP address $ns_ip_address is invalid\e[0m";
 		exit 1;
 	fi
 	echo -e "\e[0;32m  -> validating default gateway IP address: $gateway...\e[0m"
-	if !($(is_valid_ipv4 $gateway))
+	if ! ($(is_valid_ipv4 $gateway))
 	then
 		echo -e "\e[0;31m       default gateway IP address $gateway is invalid\e[0m";
 		exit 1;
@@ -198,7 +201,7 @@ done
 #--------------------------------------------------------------------#
 
 
-echo -e "\e[1;34mStarting v_svr_base v$v_svr_base_version\e[0m"
+echo -e "\e[1;34mStarting v_svr_base.sh v$v_svr_base_version\e[0m"
 echo ''
 
 #--------------------------------------------------------------------#
@@ -206,7 +209,6 @@ echo ''
 #--------------------------------------------------------------------#
 . $1
 # validate - partially - some of the options
-source ./common/functions
 validate_options $1
 # set proxy if needed
 set_installer_proxy
@@ -228,8 +230,8 @@ fi
 print_option_file_variables
 echo ''
 lsblk
-echo -e "\e[1;31mAbout to totally delete $bootloader_device !!!\e[0m"
-echo -e "\e[1;31mCheck VERY carefully partition devices! ! ! Ctrl-c to abort, [Enter] key to proceed\e[0m"
+echo -e "\e[1;31mAbout to totally delete $bootloader_device\e[0m"
+echo -e "\e[1;31mCheck VERY carefully partition devices! Ctrl-c to abort, [Enter] key to proceed\e[0m"
 read
 echo ''
 #--------------------------------------------------------------------#
@@ -238,14 +240,19 @@ echo ''
 # Partition disk
 #--------------------------------------------------------------------#
 echo -e "\e[32mPatitioning disk...\e[0m"
+current_task='Partioning disk'
 # delete existing data
 sgdisk -og $bootloader_device
+exit_on_error $? "$current_task"
 STARTSECTOR=$(sgdisk -F $bootloader_device)
 sgdisk -n 1:$STARTSECTOR:+1M -c 1:"BIOS Boot Partition" -t 1:ef02 $bootloader_device
+exit_on_error $? "$current_task"
 STARTSECTOR=$(sgdisk -F $bootloader_device)
 ENDSECTOR=$(sgdisk -E $bootloader_device)
 sgdisk -n 2:$STARTSECTOR:$ENDSECTOR -c 2:"root" -t 2:8300 $bootloader_device
+exit_on_error $? "$current_task"
 sgdisk -p $bootloader_device
+exit_on_error $? "$current_task"
 echo ''
 #--------------------------------------------------------------------#
 
@@ -255,6 +262,7 @@ echo ''
 #--------------------------------------------------------------------#
 echo -e "\e[32mFormating root partition...\e[0m"
 mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 -L root $root_partition
+exit_on_error $? !!
 echo ''
 #--------------------------------------------------------------------#
 
@@ -263,18 +271,23 @@ echo ''
 #--------------------------------------------------------------------#
 if [ ! -f ./common/mirrorlist ]; then
 	echo -e "\e[0;32mGetting five quickest mirrors...\e[0m"
+	current_task='Getting quickest mirror'
 	# install needed packages
 	pacman --noconfirm -Sy pacman-contrib
+	exit_on_error $? "$current_task"
 	# get WAN IP address
 	IP=$(curl -s ipecho.net/plain)
+	exit_on_error $? "$current_task"
 	echo -e "\e[0;32m  -> getting country code for IP $IP...\e[0m"
 	# ! Note: ipinfo.io has a rate limit of 1000 per day
 	countryCode=$(curl -s ipinfo.io/$IP/country)
+	exit_on_error $? "$current_task"
 	# if rate limited (does not return two characters):
 	if [ ${#countryCode} == 2 ]; then
 		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'...\e[0m"
 		if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
 			cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+			exit_on_error $? "$current_task"
 		fi
 		echo "#--------------------------------------#" > /etc/pacman.d/mirrorlist
 		echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /etc/pacman.d/mirrorlist
@@ -282,6 +295,7 @@ if [ ! -f ./common/mirrorlist ]; then
 		echo ''
 		curl -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
 		| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
+		exit_on_error $? "$current_task"
 	else
 		echo -e "\e[0;33m  -> country lookup failed for $IP...\e[0m"
 		echo -e "  -> Return string: $countryCode"
@@ -289,10 +303,13 @@ if [ ! -f ./common/mirrorlist ]; then
 	fi
 else
 	echo -e "\e[0;32mUsing ./common/mirrorlist...\e[0m"
+	current_task='Copying supplied mirror list'
 	if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
 		cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+		exit_on_error $? "$current_task"
 	fi
 	cp ./common/mirrorlist /etc/pacman.d/
+	exit_on_error $? "$current_task"
 fi
 echo ''
 #--------------------------------------------------------------------#
@@ -301,7 +318,9 @@ echo ''
 # Update install instance keys
 #--------------------------------------------------------------------#
 echo -e "\e[32mUpdating install instance keys...\e[0m"
+current_task='Updaing Arch Linux keyring'
 pacman  --noconfirm -Sy archlinux-keyring
+exit_on_error $? "$current_task"
 echo ''
 #--------------------------------------------------------------------#
 
@@ -311,35 +330,54 @@ echo ''
 #--------------------------------------------------------------------#
 # mount partitions
 echo -e "\e[32mMounting partitions...\e[0m"
+current_task='Mounting partitions'
 mount $root_partition /mnt
+exit_on_error $? "$current_task"
 mkdir /mnt/boot
+exit_on_error $? "$current_task"
 echo ''
 
 # install minimum packages
 echo -e "\e[32mInstalling base operating system...\e[0m"
+current_task='Installing Arch Linux'
 pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent $selected_editor
+exit_on_error $? "$current_task"
 echo ''
 
 # generate boot loaded file systems
 echo -e "\e[32mGenerating /etc/fstab...\e[0m"
 genfstab -U /mnt >> /mnt/etc/fstab
+exit_on_error $? "$current_task"
 echo ''
 
 echo -e "\e[32mCopying configuration files and base scripts...\e[0m"
 # add nftables base configuration
+current_task='Configuring nftables firewall'
 cp -p ./v_svr_base/nftables.conf /mnt/etc
+exit_on_error $? "$current_task"
 chmod go-rwx /mnt/etc/nftables.conf
+exit_on_error $? "$current_task"
 # add source script for default configuration
 sed -i '2i#--------------------------------------#' /mnt/etc/nftables.conf
+exit_on_error $? "$current_task"
 sed -i "2i# Installed by v_svr_bash.sh v$v_svr_base_version" /mnt/etc/nftables.conf
+exit_on_error $? "$current_task"
 sed -i '2i#--------------------------------------#' /mnt/etc/nftables.conf
+exit_on_error $? "$current_task"
 sed -i '2i\\n' /mnt/etc/nftables.conf
+exit_on_error $? "$current_task"
 # copy ls wrapper 'list'
+current_task='Adding "list" command'
 cp -p ./common/list /mnt/usr/local/bin
+exit_on_error $? "$current_task"
 chmod go-w /mnt/usr/local/bin/list
+exit_on_error $? "$current_task"
 chmod go+rx /mnt/usr/local/bin/list
+exit_on_error $? "$current_task"
 # copy mirrorlist
+current_task='Configuring repository mirror list'
 cp -p /etc/pacman.d/mirrorlist /mnt/etc/pacman.d
+exit_on_error $? "$current_task"
 echo ''
 #--------------------------------------------------------------------#
 
@@ -350,51 +388,87 @@ echo ''
 
 # configure ssh: no root login
 echo -e "\e[32mSecuring sshd...\e[0m"
+current_task='Securing sshd'
 echo "" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo "PermitRootLogin no" >> /mnt/etc/ssh/sshd_config
+exit_on_error $? "$current_task"
 echo ''
 
 # configure sudo
 echo -e "\e[32mConfiguring sudo...\e[0m"
+current_task='Configuring sudo'
 tmpAdminUser=$admin
 adminUser=${tmpAdminUser,,}
 echo "" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "User_Alias      ADMINS_SUDO = $adminUser" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo "ADMINS_SUDO $name=(ALL) ALL" >> /mnt/etc/sudoers
+exit_on_error $? "$current_task"
 echo ''
 
 # configure networking
 echo -e "\e[32mConfiguring network...\e[0m"
+current_task='Configuring network'
 #  name resolution
 echo "" >> /mnt/etc/resolve.conf
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 echo "search $search_domain" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 echo "nameserver $ns_ip_address" >> /mnt/etc/resolv.conf
+exit_on_error $? "$current_task"
 #  network interface
 echo "#--------------------------------------#" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "#--------------------------------------#" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "[Match]" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "Name=$ip_link" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "[Link]" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "[Address]" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "Address=$ip_address" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "[Route]" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo "Gateway=$gateway" >> /mnt/etc/systemd/network/$fqdn.network
+exit_on_error $? "$current_task"
 echo ''
 #--------------------------------------------------------------------#
 
@@ -404,18 +478,28 @@ echo ''
 #--------------------------------------------------------------------#
 # copy inside arch-chroot script
 echo -e "\e[32mConfiguring chroot script...\e[0m"
+current_task='Configuring chroot script'
 cp -p ./v_svr_base/v_svr_base_chroot.sh /mnt
+exit_on_error $? "$current_task"
 # substituting in variables from parent (v_svr_base.sh)
 sed -e s/"GR_NAME"/"$name"/g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s/"GR_FQDN"/"$fqdn"/g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s@"GR_BOOTLOADERDEVICE"@"$bootloader_device"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s@"GR_LOCALE"@"$locale"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s@"GR_REGION"@"$region"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s@"GR_ZONE"@"$zone"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 sed -e s@"GR_ADMIN_ACCOUNT"@"$admin"@g /mnt/v_svr_base_chroot.sh > /mnt/inside_chroot.tmp && mv --force /mnt/inside_chroot.tmp /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 echo ''
 
 chmod u+x /mnt/v_svr_base_chroot.sh
+exit_on_error $? "$current_task"
 
 # and run chroot tasks
 arch-chroot /mnt /v_svr_base_chroot.sh
