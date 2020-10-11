@@ -24,7 +24,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.5"
+v_svr_base_version="0.3.6"
 #--------------------------------------------------------------------#
 
 
@@ -76,13 +76,19 @@ function print_option_file_variables
 	echo "    Administration account: $admin"
 	echo "  Networking:"
 	echo "    Link name: $ip_link"
-	echo "    Host IPv4 address: $ip_address"
 	echo "    Search domain: $search_domain"
-	echo "    Name server IPv4 address: $ns_ip_address"
-	echo "    Gateway IPv4 address: $gateway"
+	echo "    Bypass proxy: $env_no_proxy"
+	echo "    Http proxy: $env_http_proxy"
+	echo "    Https proxy: $env_https_proxy"
+	echo "    Ftp proxy: $env_ftp_proxy"
+	echo "    IPv4:"
+	echo "      Host IPv4 address: $ip_address"
+	echo "      Name server IPv4 address: $ns_ip_address"
+	echo "      Gateway IPv4 address: $gateway"
 	echo "  Optional:"
 	echo "    Installer http proxy: $installer_http_proxy"
 	echo "    Installer https proxy: $installer_https_proxy"
+	echo "    Installer ftp proxy: $installer_ftp_proxy"
 	echo "    Text editor: $text_editor"
 }
 
@@ -109,6 +115,12 @@ function set_installer_proxy
 	then
 		echo -e "\e[32mExporting https_proxy as '$installer_https_proxy'...\e[0m"
 		export https_proxy="$installer_https_proxy";
+		echo ''
+	fi
+	if [ -n "$installer_ftp_proxy" ];
+	then
+		echo -e "\e[32mExporting ftp_proxy as '$installer_ftp_proxy'...\e[0m"
+		export ftp_proxy="$installer_ftp_proxy";
 		echo ''
 	fi
 }
@@ -468,6 +480,52 @@ echo "[Route]" >> /mnt/etc/systemd/network/$fqdn.network
 exit_on_error $? "$current_task"
 echo "Gateway=$gateway" >> /mnt/etc/systemd/network/$fqdn.network
 exit_on_error $? "$current_task"
+echo ''
+
+# configure global proxy settings
+current_task='Proxy settings'
+if [[ -n "$env_http_proxy" ||  -n "$env_https_proxy" || -n "$env_ftp_proxy" || -n "$env_no_proxy" ]];
+then
+	echo -e "\e[32mAdding global proxy settings to /etc/environment...\e[0m"
+	echo "" >> /mnt/etc/environment
+	exit_on_error $? "$current_task"
+	echo "" >> /mnt/etc/environment
+	exit_on_error $? "$current_task"
+	echo "#--------------------------------------#" >> /mnt/etc/environment
+	exit_on_error $? "$current_task"
+	echo "# Added by v_svr_bash.sh v$v_svr_base_version" >> /mnt/etc/environment
+	exit_on_error $? "$current_task"
+	echo "#--------------------------------------#" >> /mnt/etc/environment
+	exit_on_error $? "$current_task"
+	if [ -n "$env_no_proxy" ];
+	then
+		echo "no_proxy=\"$env_no_proxy\"" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+		echo "NO_PROXY=\"$env_no_proxy\"" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+	fi
+	if [ -n "$env_http_proxy" ];
+	then
+		echo "http_proxy=$env_http_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+		echo "HTTP_PROXY=$env_http_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+	fi
+	if [ -n "$env_https_proxy" ];
+	then
+		echo "https_proxy=$env_https_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+		echo "HTTPS_PROXY=$env_https_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+	fi
+	if [ -n "$env_ftp_proxy" ];
+	then
+		echo "ftp_proxy=$env_ftp_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+		echo "FTP_PROXY=$env_ftp_proxy" >> /mnt/etc/environment
+		exit_on_error $? "$current_task"
+	fi
+fi
 echo ''
 #--------------------------------------------------------------------#
 

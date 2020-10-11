@@ -30,11 +30,20 @@ gateway='jjj.kkk.lll.mmm'
 #**********************#
 #   Optional options   #
 #**********************#
-# http proxy settings - e.g.:
+# proxy settings - e.g.:
 #  http://<proxy host name or IP address>[:<port>]/
 #  http://<user>:<password>@<proxy host name or IP address>[:<port>]/
+# for install only
 installer_http_proxy=''
 installer_https_proxy=''
+installer_ftp_proxy=''
+# global (/etc/environment) settings for target host
+#  env_no_proxy is a comma separated list of: hostname or fqdn[:<port>] or <ip address>[:<port>] 
+#  - system usually has sensible defaults if left blank
+env_no_proxy=''
+env_http_proxy=''
+env_https_proxy=''
+env_ftp_proxy=''
 
 # editor
 # valid editors:
