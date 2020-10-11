@@ -1,11 +1,11 @@
 #!/bin/bash
-source ../common/functions
+source ./functions
 
 #--------------------------------------------------------------------#
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.5.1"
+v_svr_base_chroot_version="0.5.2"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -203,6 +203,7 @@ echo ''
 #--------------------------------------------------------------------#
 current_task='Clean up'
 rm /v_svr_base_chroot.sh
+rm /functions
 exit_on_error $? "$current_task"
 #--------------------------------------------------------------------#
 

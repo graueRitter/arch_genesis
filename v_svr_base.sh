@@ -1,5 +1,4 @@
 #!/bin/bash
-set -o history -o histexpand
 source ./common/functions
 
 #--------------------------------------------------------------------#
@@ -25,7 +24,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.4"
+v_svr_base_version="0.3.5"
 #--------------------------------------------------------------------#
 
 
@@ -476,6 +475,10 @@ echo ''
 #--------------------------------------------------------------------#
 # Configure chroot script
 #--------------------------------------------------------------------#
+echo -e "\e[32mEnabling functions for chroot script...\e[0m"
+current_task='Enabling functions for chroot script'
+cp -p ./common/functions /mnt
+exit_on_error $? "$current_task"
 # copy inside arch-chroot script
 echo -e "\e[32mConfiguring chroot script...\e[0m"
 current_task='Configuring chroot script'

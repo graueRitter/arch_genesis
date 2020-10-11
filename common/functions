@@ -1,7 +1,4 @@
 #!/bin/bash
-# enable !! command completion
-# - needed for exit_on_error
-set -o history -o histexpand
 
 #--------------------------------------------------------------------#
 # Common functions
