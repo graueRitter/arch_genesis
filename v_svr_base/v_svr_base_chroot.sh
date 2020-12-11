@@ -5,7 +5,7 @@ source ./functions
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.5.2"
+v_svr_base_chroot_version="0.5.3"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -131,7 +131,7 @@ echo ''
 # enable qemu guest agent
 echo -e "\e[32mEnabling qemu guest agent...\e[0m"
 current_task='Installing qemu guest agent'
-systemctl enable qemu-ga.service
+systemctl enable qemu-guest-agent.service
 exit_on_error $? "$current_task"
 echo ''
 
