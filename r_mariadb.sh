@@ -11,7 +11,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_mariadb_version="0.0.1"
+r_mariadb_version="0.0.2"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -218,7 +218,8 @@ exit_on_error $? "$current_task"
 # point to data directory in my.cnf
 if [ -f /etc/mysql/my.cnf ]
 then
-	cp -a /etc/mysql/my.cnf /etc/mysql/my.cnf.original ;
+#	cp -a /etc/mysql/my.cnf /etc/mysql/my.cnf.original ;
+	backup_file "/etc/mysql/my.cnf"
 	exit_on_error $? "$current_task"
 fi
 echo '' >> /etc/mysql/my.cnf

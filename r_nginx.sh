@@ -13,7 +13,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_nginx_version="0.1.1"
+r_nginx_version="0.1.2"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -343,16 +343,18 @@ exit_on_error $? "$current_task"
 #----------------------------- PHP-FPM ------------------------------#
 # default php-fpm confguration
 current_task='Configuring php-fpm'
-if [ -f /etc/php/php-fpm.d/www.conf ]
-then
-	mv /etc/php/php-fpm.d/www.conf /etc/php/php-fpm.d/www.conf.original ;
-	exit_on_error $? "$current_task"
-fi
-if [ -f /etc/php/php-fpm.d/www-root.conf ]
-then
-	mv /etc/php/php-fpm.d/www-root.conf /etc/php/php-fpm.d/www-root.conf.original ;
-	exit_on_error $? "$current_task"
-fi
+#if [ -f /etc/php/php-fpm.d/www.conf ]
+#then
+#	mv /etc/php/php-fpm.d/www.conf /etc/php/php-fpm.d/www.conf.original ;
+#	exit_on_error $? "$current_task"
+#fi
+backup_file "/etc/php/php-fpm.d/www.conf"
+#if [ -f /etc/php/php-fpm.d/www-root.conf ]
+#then
+#	mv /etc/php/php-fpm.d/www-root.conf /etc/php/php-fpm.d/www-root.conf.original ;
+#	exit_on_error $? "$current_task"
+#fi
+backup_file "/etc/php/php-fpm.d/www-root.conf"
 echo ";--------------------------------------;" > /etc/php/php-fpm.d/www-root.conf
 exit_on_error $? "$current_task"
 echo "; Installed by r_nginx.sh v$r_nginx_version" >> /etc/php/php-fpm.d/www-root.conf

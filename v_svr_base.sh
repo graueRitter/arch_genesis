@@ -24,7 +24,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.6"
+v_svr_base_version="0.3.7"
 #--------------------------------------------------------------------#
 
 
@@ -296,9 +296,10 @@ if [ ! -f ./common/mirrorlist ]; then
 	# if rate limited (does not return two characters):
 	if [ ${#countryCode} == 2 ]; then
 		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'...\e[0m"
-		if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
-			cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
-			exit_on_error $? "$current_task"
+#		if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
+#			cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+#			exit_on_error $? "$current_task"
+			backup_file "/etc/pacman.d/mirrorlist"
 		fi
 		echo "#--------------------------------------#" > /etc/pacman.d/mirrorlist
 		echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /etc/pacman.d/mirrorlist
@@ -315,10 +316,11 @@ if [ ! -f ./common/mirrorlist ]; then
 else
 	echo -e "\e[0;32mUsing ./common/mirrorlist...\e[0m"
 	current_task='Copying supplied mirror list'
-	if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
-		cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
-		exit_on_error $? "$current_task"
-	fi
+#	if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
+#		cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
+#		exit_on_error $? "$current_task"
+#	fi
+	backup_file "/etc/pacman.d/mirrorlist"
 	cp ./common/mirrorlist /etc/pacman.d/
 	exit_on_error $? "$current_task"
 fi
