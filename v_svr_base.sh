@@ -24,7 +24,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.7"
+v_svr_base_version="0.3.8"
 #--------------------------------------------------------------------#
 
 
@@ -296,18 +296,24 @@ if [ ! -f ./common/mirrorlist ]; then
 	# if rate limited (does not return two characters):
 	if [ ${#countryCode} == 2 ]; then
 		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'...\e[0m"
-#		if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
-#			cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
-#			exit_on_error $? "$current_task"
-			backup_file "/etc/pacman.d/mirrorlist"
-		fi
+		backup_file "/etc/pacman.d/mirrorlist"
 		echo "#--------------------------------------#" > /etc/pacman.d/mirrorlist
 		echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /etc/pacman.d/mirrorlist
 		echo "#--------------------------------------#" >> /etc/pacman.d/mirrorlist
 		echo ''
-		curl -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
-		| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
-		exit_on_error $? "$current_task"
+		if [[ -n "$installer_http_proxy" ]]; then
+			curl --proxy "$installer_http_proxy" --insecure -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
+			exit_on_error $? "$current_task"
+		elif [[ -n "$installer_https_proxy" ]]; then
+			curl --proxy "$installer_https_proxy" -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
+			exit_on_error $? "$current_task"
+		else
+			curl -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
+			exit_on_error $? "$current_task"
+		fi
 	else
 		echo -e "\e[0;33m  -> country lookup failed for $IP...\e[0m"
 		echo -e "  -> Return string: $countryCode"
@@ -316,10 +322,6 @@ if [ ! -f ./common/mirrorlist ]; then
 else
 	echo -e "\e[0;32mUsing ./common/mirrorlist...\e[0m"
 	current_task='Copying supplied mirror list'
-#	if [ ! -f /etc/pacman.d/mirrorlist.original ]; then
-#		cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.original
-#		exit_on_error $? "$current_task"
-#	fi
 	backup_file "/etc/pacman.d/mirrorlist"
 	cp ./common/mirrorlist /etc/pacman.d/
 	exit_on_error $? "$current_task"
