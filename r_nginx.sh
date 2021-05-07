@@ -13,7 +13,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_nginx_version="0.1.2"
+r_nginx_version="1.0.0"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -28,6 +28,7 @@ function print_usage
 	echo 'Syntax: r_nginx.sh <configuration file>' >&2 ;
 	echo "Where configuration file defines the following variables:"
 	echo "  \$serverURL => url of root web page which can be either an IP, or fqdn"
+	echo "  [optional - if all below are null then self signed certificate will be created]"
 	echo "  \$serverCertCA => CA certificate - must end in '.crt'"
 	echo "  \$serverCert => server certificate"
 	echo "  \$serverCertKey => server certificate key"
@@ -36,7 +37,7 @@ function print_usage
 
 function print_option_file_variables
 {
-	echo '/* -- Validating options file ... --*/'
+	echo '/* -- Validating options file  --*/'
 	echo "  Web server root url: $serverURL"
 	echo "  Web server certificate CA: $serverCertCA"
 	echo "  Web server certificate: $serverCert"
@@ -47,7 +48,7 @@ function rollback
 {
 	# to clean up after failed installation attempt
 	# not currently in use - future expansion
-	echo -e "\e[0;31mRolling back ...\e[0m"
+	echo -e "\e[0;31mRolling back \e[0m"
 }
 
 function configure_SSL
@@ -55,17 +56,20 @@ function configure_SSL
 	# only if serverCert, serverCertCA, and serverCertKey not specified
 	if [[ $serverCert == '' && $serverCertCA == '' && $serverCertKey == '' ]] ;
 	then
-		echo -e "\e[0;32mCreating self signed SSL certificates ...\e[0m"
+		echo -e "\e[0;32mCreating self signed SSL certificates \e[0m"
 		current_task='Create self signed SSL certificates'
-		fqdn=`hostname -f`
+		fqdn=$serverURL
 		sudo openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
 		-keyout /etc/ssl/private/$fqdn.key -out /etc/ssl/certs/$fqdn.crt \
 		-subj "/CN=$fqdn"
 		exit_on_error $? "$current_task"
-		sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 4096
-		exit_on_error $? "$current_task"
+		if [ ! -f /etc/ssl/certs/dhparam.pem ]
+		then
+			sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 4096
+			exit_on_error $? "$current_task"
+		fi
 	else
-		echo -e "\e[0;32mUsing specified or existing SSL certificates ...\e[0m"
+		echo -e "\e[0;32mUsing specified or existing SSL certificates \e[0m"
 		current_task='Using specified or existing SSL certificates'
 		if [ ! -f "/etc/certs/$serverCert" ]; then
 			cp -p $serverCert /etc/ssl/certs/
@@ -77,7 +81,7 @@ function configure_SSL
 		fi
 		# Add CA
 		if [ ! -f "/etc/certs/$serverCertCA" ]; then
-			current_task='Installing CA certiuficate into trusted source'
+			current_task='Installing CA certificate into trusted source'
 			cp -p $serverCertCA /etc/ca-certificates/trust-source/anchors/
 			exit_on_error $? "$current_task"
 			chmod ugo-wx /etc/ca-certificates/trust-source/anchors/$serverCertCA
@@ -109,7 +113,7 @@ then
 fi
 
 # terminate if error - not sure what error though
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+if [ $? != 0 ] ; then echo "Terminating" >&2 ; exit 1 ; fi
 
 # Note the quotes around `$TEMP': they are essential!
 eval set -- "$TEMP"
@@ -163,28 +167,23 @@ else
 	echo ''
 fi
 
-# check for nginx or nginx-mainline
-pacman -Q nginx &>/dev/null
+# check for nginx-mainline
+pacman -Q nginx-mainline &>/dev/null
 if [ $? -eq 0 ]
 then
-	echo 'nginx is installed, nginx-mainline is the recommended version' ;
-	echo 'skipping nginx-mainline install...' ;
+	echo 'nginx is installed' ;
+	echo 'Exiting nginx install script';
+	exit 1;
 else
-	pacman -Q nginx-mainline &>/dev/null
-	if [ $? -eq 0 ]
-	then
-		echo 'nginx-mainline is installed' ;
-		echo 'skipping nginx-mainline install...' ;
-	else
-		installString="$installString nginx-mainline"
-	fi
+	installString="$installString nginx-mainline"
 fi
 
 # check if php-fpm already installed
 pacman -Q php-fpm &>/dev/null
 if [ $? -eq 0 ]
 then
-	echo 'php-fpm is installed, skipping...' ;
+	echo 'php-fpm is installed, skipping';
+	echo 'Exiting nginx install script';
 else
 	installString="$installString php-fpm"
 fi
@@ -193,7 +192,7 @@ fi
 pacman -Q openssl &>/dev/null
 if [ $? -eq 0 ]
 then
-	echo 'openssl is installed, skipping...' ;
+	echo 'openssl is installed, skipping' ;
 else
 	installString="$installString openssl"
 fi
@@ -201,8 +200,8 @@ fi
 # ask human to verify variables
 print_option_file_variables
 echo ''
-echo -e "\e[0;31mAbout to install nginx web server (https://$serverURL) to /srv/html/root ...\e[0m"
-echo -e "\e[0;31mCtrl-c to abort, [Enter] key to proceed ...\e[0m"
+echo -e "\e[0;31mAbout to install nginx web server (https://$serverURL) to /srv/html/root \e[0m"
+echo -e "\e[0;31mCtrl-c to abort, [Enter] key to proceed \e[0m"
 read
 echo ''
 #--------------------------------------------------------------------#
@@ -213,29 +212,29 @@ echo ''
 # potential issues here:
 #  https://unix.stackexchange.com/questions/52277/pacman-option-to-assume-yes-to-every-question
 #  - will break if pacman asks for a selection. Perform manual '-syu' first then just '-S'?
-echo -e "\e[32mInstalling: $installString ...\e[0m"
-current_task="Installing packages"
-pacman --noconfirm -S $installString
-# or pacman -Syu --noconfirm $installString ?
-exit_on_error $? "$current_task"
-
+if [ ! -z "${installString}" ];
+then
+	echo -e "\e[32mInstalling packages: $installString \e[0m"
+	current_task="Installing packages"
+	pacman --noconfirm -S $installString
+	# or pacman -Syu --noconfirm $installString ?
+	exit_on_error $? "$current_task"
+fi
 #--------------------------------------------------------------------#
 
 
 #--------------------------------------------------------------------#
 # Configure
 #--------------------------------------------------------------------#
-echo -e "\e[32mConfiguring nginx and php-fpm ...\e[0m"
-current_task='Configuring nginx'
+configure_SSL
+
+echo -e "\e[32mConfiguring nginx and php-fpm \e[0m"
+current_task="Configuring nginx"
 #------------------------------- nginx ------------------------------#
 # copy default nginx root site configuration
 mkdir -p /etc/nginx/sites-available
 exit_on_error $? "$current_task"
-if [ -f /etc/nginx/sites-available/www-root ]
-then
-	mv /etc/nginx/sites-available/www-root /etc/nginx/sites-available/www-root.original ;
-	exit_on_error $? "$current_task"
-fi
+backup_file "/etc/nginx/sites-available/www-root"
 touch /etc/nginx/sites-available/www-root
 exit_on_error $? "$current_task"
 chmod go-wx /etc/nginx/sites-available/www-root
@@ -252,9 +251,7 @@ echo "" >> /etc/nginx/sites-available/www-root
 exit_on_error $? "$current_task"
 cat r_nginx/www-root >> /etc/nginx/sites-available/www-root
 exit_on_error $? "$current_task"
-# change default URL to host's fqdn
-configure_SSL
-fqdn=$(hostname -f)
+fqdn=$serverURL
 exit_on_error $? "$current_task"
 sed -e s@"HOSTNAME"@"$fqdn"@g /etc/nginx/sites-available/www-root > /etc/nginx/sites-available/www-root.tmp \
 && mv --force /etc/nginx/sites-available/www-root.tmp /etc/nginx/sites-available/www-root
@@ -263,15 +260,13 @@ exit_on_error $? "$current_task"
 # enable default site
 mkdir -p /etc/nginx/sites-enabled
 exit_on_error $? "$current_task"
-ln -s /etc/nginx/sites-available/www-root /etc/nginx/sites-enabled/www-root
-exit_on_error $? "$current_task"
-
-# default nginx confguration
-if [ -f /etc/nginx/nginx.conf ]
+if [ ! -f "/etc/nginx/sites-enabled/www-root" ];
 then
-	mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original ;
+	ln -s /etc/nginx/sites-available/www-root /etc/nginx/sites-enabled/www-root
 	exit_on_error $? "$current_task"
 fi
+# default nginx confguration
+backup_file "/etc/nginx/nginx.conf"
 touch /etc/nginx/nginx.conf
 exit_on_error $? "$current_task"
 chmod go-wx /etc/nginx/nginx.conf
@@ -292,14 +287,9 @@ exit_on_error $? "$current_task"
 # nginx does not always start in default 90 seconds for systemd service
 # - three minutes empirically determined to work
 # - from core dump may have something to do with waiting for entropy?
-if [ -f /etc/systemd/system/nginx.service.d/override.conf ]
-then
-	mv /etc/systemd/system/nginx.service.d/override.conf /etc/systemd/system/nginx.service.d/override.conf.original ;
-	exit_on_error $? "$current_task"
-else
-	mkdir -p /etc/systemd/system/nginx.service.d ;
-	exit_on_error $? "$current_task"
-fi
+mkdir -p /etc/systemd/system/nginx.service.d ;
+exit_on_error $? "$current_task"
+backup_file "/etc/systemd/system/nginx.service.d/override.conf"
 echo "#--------------------------------------#" > /etc/systemd/system/nginx.service.d/override.conf
 exit_on_error $? "$current_task"
 echo "# Installed by r_nginx.sh v$r_nginx_version" >> /etc/systemd/system/nginx.service.d/override.conf
@@ -309,7 +299,7 @@ exit_on_error $? "$current_task"
 echo "" >> /etc/systemd/system/nginx.service.d/override.conf
 exit_on_error $? "$current_task"
 echo '[Service]' >> /etc/systemd/system/nginx.service.d/override.conf
-exit_on_error $?"$current_task"
+exit_on_error $? "$current_task"
 echo 'TimeoutStartSec=300' >> /etc/systemd/system/nginx.service.d/override.conf
 exit_on_error $? "$current_task"
 
@@ -334,26 +324,11 @@ mkdir -p /srv/html/root
 exit_on_error $? "$current_task"
 cp -a /usr/share/nginx/html/* /srv/html/root
 exit_on_error $? "$current_task"
-# add php information page - Really? Security risk?
-#cp r_nginx/phpinfo.php /srv/html/root
-# secure directory
-# breaks web browsing when not running as unpriviliged as above: chown --recursive http:http /srv/html/root
-# breaks web browsing when not running as unpriviliged as above: chmod --recursive go-rwx /srv/html/root
 
 #----------------------------- PHP-FPM ------------------------------#
 # default php-fpm confguration
 current_task='Configuring php-fpm'
-#if [ -f /etc/php/php-fpm.d/www.conf ]
-#then
-#	mv /etc/php/php-fpm.d/www.conf /etc/php/php-fpm.d/www.conf.original ;
-#	exit_on_error $? "$current_task"
-#fi
 backup_file "/etc/php/php-fpm.d/www.conf"
-#if [ -f /etc/php/php-fpm.d/www-root.conf ]
-#then
-#	mv /etc/php/php-fpm.d/www-root.conf /etc/php/php-fpm.d/www-root.conf.original ;
-#	exit_on_error $? "$current_task"
-#fi
 backup_file "/etc/php/php-fpm.d/www-root.conf"
 echo ";--------------------------------------;" > /etc/php/php-fpm.d/www-root.conf
 exit_on_error $? "$current_task"
@@ -372,6 +347,7 @@ exit_on_error $? "$current_task"
 
 #------------------------------ nftables ----------------------------#
 current_task='Configuring nftables firewall'
+backup_file "/etc/nftables.conf"
 echo "" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
 echo "" >> /etc/nftables.conf
@@ -386,13 +362,11 @@ echo "" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
 echo "# allow http and https incoming" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
-echo "add rule ip filter input tcp dport http accept" >> /etc/nftables.conf
+echo "add rule inet filter input tcp dport http accept" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
 echo "#IPv6: add rule ip6 filter input tcp dport http accept" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
-echo "add rule ip filter input tcp dport https accept" >> /etc/nftables.conf
-exit_on_error $? "$current_task"
-echo "#IPv6: add rule ip6 filter input tcp dport https accept" >> /etc/nftables.conf
+echo "add rule inet filter input tcp dport https accept" >> /etc/nftables.conf
 exit_on_error $? "$current_task"
 systemctl restart nftables
 exit_on_error $? "$current_task"
@@ -402,7 +376,7 @@ exit_on_error $? "$current_task"
 #--------------------------------------------------------------------#
 # Enable and start
 #--------------------------------------------------------------------#
-echo -e "\e[32mEnabling and starting web server services ...\e[0m"
+echo -e "\e[32mEnabling and starting web server services \e[0m"
 current_task='Enabling and starting services'
 systemctl enable nginx
 exit_on_error $? "$current_task"

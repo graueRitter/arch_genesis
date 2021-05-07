@@ -11,7 +11,7 @@ source ./common/functions
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-r_mariadb_version="0.0.2"
+r_mariadb_version="1.0.0"
 installString=''
 #--------------------------------------------------------------------#
 
@@ -67,7 +67,7 @@ then
 fi
 
 # terminate if error - not sure what error though
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+if [ $? != 0 ] ; then echo "Terminating" >&2 ; exit 1 ; fi
 
 # Note the quotes around `$TEMP': they are essential!
 eval set -- "$TEMP"
@@ -122,7 +122,9 @@ fi
 pacman -Q mariadb &>/dev/null
 if [ $? -eq 0 ]
 then
-	echo '--> MariaDB is installed, skipping install...' ;
+	echo '--> MariaDB is installed' ;
+	echo 'Exiting MariaDB install script';
+	exit 1;
 else
 	installString="$installString mariadb"
 fi
@@ -138,9 +140,9 @@ fi
 # ask human to verify variables
 print_option_file_variables
 echo ''
-echo -e "\e[0;31mAbout to install and configure MariaDB database server...\e[0m"
+echo -e "\e[0;31mAbout to install and configure MariaDB database server\e[0m"
 echo -e "\e[0;31m  -> creating database in /srv/databases/$databaseInstance\e[0m"
-echo -e "\e[0;31mCtrl-c to abort, Press any key to proceed...\e[0m"
+echo -e "\e[0;31mCtrl-c to abort, Press any key to proceed\e[0m"
 read -s -n 1 -r
 echo ''
 }
@@ -154,7 +156,7 @@ echo ''
 #  - will break if pacman asks for a selection. Perform manual '-syu' first then just '-S'?
 if [[ $installString != '' ]] ;
 then
-	echo -e "\e[32m--> Installing: $installString...\e[0m"
+	echo -e "\e[32m--> Installing: $installString\e[0m"
 	current_task="Installing packages"
 	pacman --noconfirm -S $installString
 	# or pacman -Syu --noconfirm $installString ?
@@ -167,7 +169,7 @@ fi
 #--------------------------------------------------------------------#
 # Configure
 #--------------------------------------------------------------------#
-echo -e "\e[32m--> Configuring MariaDB database in /srv/databases/$databaseInstance...\e[0m"
+echo -e "\e[32m--> Configuring MariaDB database in /srv/databases/$databaseInstance\e[0m"
 
 ###------------------------------ nftables ----------------------------#
 ##echo "" >> /etc/nftables.conf
@@ -216,53 +218,55 @@ exit_on_error $? !"$current_task"
 chmod --recursive go-rwx "/srv/databases/$databaseInstance"
 exit_on_error $? "$current_task"
 # point to data directory in my.cnf
-if [ -f /etc/mysql/my.cnf ]
+if [ -f /etc/my.cnf ]
 then
-#	cp -a /etc/mysql/my.cnf /etc/mysql/my.cnf.original ;
-	backup_file "/etc/mysql/my.cnf"
+	backup_file "/etc/my.cnf"
 	exit_on_error $? "$current_task"
 fi
-echo '' >> /etc/mysql/my.cnf
+echo '' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "#--------------------------------------#" >> /etc/mysql/my.cnf
+echo "#--------------------------------------#" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "# Installed by r_mariadb.sh v$r_mariadb_version" >> /etc/mysql/my.cnf
+echo "# Installed by r_mariadb.sh v$r_mariadb_version" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "#--------------------------------------#" >> /etc/mysql/my.cnf
+echo "#--------------------------------------#" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '' >> /etc/mysql/my.cnf
+echo '' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '[client]' >> /etc/mysql/my.cnf
+
+echo '[client]' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/mysql/my.cnf
+echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo 'default-character-set = utf8mb4' >> /etc/mysql/my.cnf
+echo 'default-character-set = utf8mb4' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '' >> /etc/mysql/my.cnf
+echo '' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '[mysqld]' >> /etc/mysql/my.cnf
+
+echo '[mysqld]' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "datadir = '/srv/databases/$databaseInstance'" >> /etc/mysql/my.cnf
+echo "datadir = '/srv/databases/$databaseInstance'" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/mysql/my.cnf
+echo "socket = '/run/mysqld/mysqld-$databaseInstance.sock'" >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo 'collation_server = utf8mb4_unicode_ci' >> /etc/mysql/my.cnf
+echo 'collation_server = utf8mb4_unicode_ci' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo 'character_set_server = utf8mb4' >> /etc/mysql/my.cnf
+echo 'character_set_server = utf8mb4' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo 'innodb_file_per_table = 1' >> /etc/mysql/my.cnf
+echo 'innodb_file_per_table = 1' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '' >> /etc/mysql/my.cnf
+echo '' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo '[mysql]' >> /etc/mysql/my.cnf
+
+echo '[mysql]' >> /etc/my.cnf
 exit_on_error $? "$current_task"
-echo 'default-character-set = utf8mb4' >> /etc/mysql/my.cnf
+echo 'default-character-set = utf8mb4' >> /etc/my.cnf
 exit_on_error $? "$current_task"
 
 #--------------------------------------------------------------------#
 # Enable, start, and secure
 #--------------------------------------------------------------------#
-echo -e "\e[32m--> Enabling and starting database service...\e[0m"
+echo -e "\e[32m--> Enabling and starting database service\e[0m"
 current_task='Enabling and starting MariaDB database service'
 systemctl enable mariadb
 exit_on_error $? "$current_task"
@@ -272,7 +276,7 @@ exit_on_error $? "$current_task"
 #  - for some reason not yet resolved need to restart, or 'root'
 #    cannot login from 'localhost'.
 #systemctl restart mariadb
-echo -e "\e[32m--> Securing MariaDB database...\e[0m"
+echo -e "\e[32m--> Securing MariaDB database\e[0m"
 current_task='Securing database'
 # mysql_secure_installation ignores my.cnf and uses socket /run/mysqld/mysqld.sock
 ln -s /run/mysqld/mysqld-$databaseInstance.sock /run/mysqld/mysqld.sock

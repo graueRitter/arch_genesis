@@ -1,0 +1,120 @@
+0 Preamble
+==========
+
+0.0 Purpose
+-----------
+
+Creates a minimal [Arch Linux](https://archlinux.org) server install onto a virtual machine.
+
+The install will have:
+
+* serial console 'ttyS0'
+* a configured nftables firewall
+* an ssh server (openssh)
+* a local administrative account with sudo rights
+* minimal networking
+* a wrapper around the 'ls' command called 'list'
+* 1 GiB swap file in / .
+* Enabled quem-guest-agent service.
+
+0.1 Contributors
+----------------
+
+0.2 Prerequisites
+-----------------
+
+In order to use this script you need to have created a virtual machine with a mounted Arch Linux install iso that has been booted into that install iso.
+
+The virtual machine must have:
+
+* virtual disk to install Arch Linux on must be /dev/vda
+* network interface
+* sufficient disk space for a 1 GiB swap file (so, amongst other reasons, the guest can successfully perform an upgrade with less than 512 MiB RAM) and Linux base system
+* Channel deveice "qemu-ga" (org.qemu.guest_agent.0) - for enabled qemu-guest-agent service to start.
+
+Internet access must be available.
+
+The following files and folders hierarchy must be available:
+
+* ./v_svr_base.sh
+* ./common/*
+* ./v_svr_base/*
+* completed host configuration file based on ./v_svr_base/server.template
+
+0.2.1 Creating a guest
+----------------------
+
+With virt-manager:
+
+1. Open virt-manager.
+1. File -> New Virtual Machine.
+1. Step 1 of 5:
+    * Select 'Local install media (ISO image or CDROM)'.
+    * Architecture options -> x86_64.
+1. Step 2 of 5:
+    * 'Choose ISO or CDROM install media:' browse to Arch Linux iso image or CDROM.
+1. Step 3 of 5:
+    * Select Memory and CPUs as needed.
+1. Step 4 of 5:
+    * Either have virt-manager create a volume or 'Select or create custom storage'.
+
+
+1 Test results
+==============
+
+1.0 Installation
+----------------
+
+| Install iso | results |
+| :---| :--- |
+| archlinux-2021.04.01-x86_64.iso | install okay |
+
+1.1 Booting
+-----------
+
+| Boot option | result |
+| :---| :--- |
+| Arch Linux | okay |
+| Advanced options for Arch Linux -> Arch Linux, with Linux linux | okay |
+| Advanced options for Arch Linux -> Arch Linux, with Linux linux (fallback initramfs) | okay |
+| Advanced options for Arch Linux -> Arch Linux, with Linux linux (recovery mode) | okay |
+
+2 Issues
+========
+
+None.
+
+3 Usage
+=======
+
+3.0 Warnings
+------------
+
+** All data on mounted virtual disk will be destroyed. Backup first. **
+
+3.1 Pre execution
+-----------------
+
+1. Boot into the Arch Linux install iso and login as root.
+2. Copy install scripts and folders to a temporary directory, preserving folder structure.
+3. Change to temporary directory.
+4. Create a server configuration file with desired settings based on ./v_svr_base/server.template file.
+5. Ensure internet access is available.
+6. If specific repository mirrors are required, create and populate file ./common/mirrorlist based on ./common/mirrorlist.template. If ./common/mirrorlist does not exist the script will calculate the "best" mirrors (which will take extra time) and add those to the mirrorlist for the guest.
+
+3.2 Execution
+-------------
+
+`$ sudo ./v_svr_base.sh <full path and file name of server configuration file>`
+
+If behind a proxy, execute:  
+    `$ sudo sh -c 'export http[s]_proxy="http[s]://[<proxy user>:<password>]<proxy fqdn or ip address>:<proxy port>/"; ./v_svr_base.sh.sh ./<name of server configuration file based on v_svr_base/server.template>'`
+
+3.3 Post execution
+------------------
+
+1. Reboot guest.
+2. "Remove" install iso.
+3. Start guest.
+3. Add users.
+4. Install other applications/roles.

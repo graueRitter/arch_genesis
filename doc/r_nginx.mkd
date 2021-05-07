@@ -1,0 +1,82 @@
+0 Preamble
+==========
+
+0.0 Purpose
+-----------
+
+Installs a minimal [nginx](https://wiki.archlinux.org/index.php/Nginx) role onto an Arch Linux machine.
+
+The install will have:
+
+* php-fpm service
+* nginx service ([nginx-mainline](https://www.archlinux.org/packages/community/x86_64/nginx-mainline/) package) serving default nginx page
+
+0.2 Prerequisites
+-----------------
+
+In order to use this script you need to have a machine running Arch Linux and have access to an account with administrative access - either via sudo or the root account.
+
+Internet access must be available.
+
+The following files and folders hierarchy must be available:
+
+* ./common/functions
+* ./r_nginx.sh
+* ./r_nginx/*
+* completed nginx configuration file based on ./r_nginx/nginx.template
+
+0.3 Changes
+-----------
+
+Files created/modified:
+
+* `/etc/ssl/certs/<fqdn>.crt`
+* `/etc/ssl/private/<fqdn>.key`
+* `/srv/html/root/{index.html,404.html}`
+* `/etc/nginx/nginx.conf`
+* `/etc/nginx/sites-available/www-root`
+* `/etc/nginx/sites-enabled/www-root (symbolic link to /etc/nginx/sites-available/www-root)`
+* `/etc/systemd/system/nginx.service.d/override.conf`
+* `/etc/php/php-fpm.d/www-root.conf`
+* `/etc/nftables.conf`
+
+Note: modified files are backed up to `<filename>.<UTC date and time stamp>`
+
+
+1 Test results
+==============
+
+| kernel version | results |
+| :--- | :--- |
+| 5.12.1-arch1-1 | no issues |
+
+2 Usage
+=======
+
+2.0 Warnings
+------------
+
+None.
+
+2.1 Pre execution
+-----------------
+
+1. Log in to the Arch Linux machine with an account that has sudo privileges (or as root).
+2. Copy install scripts and folders to a temporary directory, preserving folder structure.
+3. Change to temporary directory.
+4. Create an nginx configuration file with desired settings based on ./r_nginx/nginx.template file.
+5. [optional] Copy certificate pair for the website. If no certificate pair specified, script will automatically create self signed certificate based on '$serverURL' in configuration file.
+6. Ensure internet access is available. 
+
+2.2 Execution
+-------------
+
+`$ sudo ./r_nginx <full path and file name of nginx configuration file>`
+
+If behind a proxy (and configuration file in same directory as r_nginx.sh script), use:  
+    `$ sudo sh -c 'export http[s]_proxy="http[s]://[<proxy user>:<password>]<proxy fqdn or ip address>:<proxy port>/"; ./r_nginx.sh ./<name of nginx configuration file based on r_nginx/nginx.template>'`
+
+2.3 Post execution
+------------------
+
+1. Add web content and extra configuration.

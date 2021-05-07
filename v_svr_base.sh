@@ -5,26 +5,32 @@ source ./common/functions
 # Options file variables
 #--------------------------------------------------------------------#
 # name = host name
-# fqdn = fully qualified domain name
+# fqdn = fully qualified domain not including host name
 # locale = language locale, e.g. en_AU.UTF-8
 # region = region host is in (for setting timezone)
 # zone = zone host is in (for setting timezone)
 # admin = user name of account that has global sudo access
 #         - created account name is forced to be all lower case
 # search_domain = domain to be appended if only host name given
+# ip_link = network interface link name - see comments in template
 # ip_address = IPv4 address of host including subnet mask bits
 # ns_ip_address = IPv4 address of name server
 # gateway = IPv4 address of gateway
-# installer_http_proxy = [optional ] http proxy string
-# installer_https_proxy = [optional] https proxy string
-# text_editor = [optional] text editor: < vi | vim | nano | emacs >
+# installer_http_proxy = [optional ] http proxy string - only for install
+# installer_https_proxy = [optional] https proxy string - only for install
+# installer_ftp_proxy = [optional] ftp proxy string - only for install
+# env_no_proxy = [optional ] no_proxy to add to /etc/environment file
+# env_http_proxy = [optional ] http proxy to add to /etc/environment file
+# env_https_proxy = [optional] https proxy to add to /etc/environment file
+# env_ftp_proxy = [optional] ftp proxy to add to /etc/environment file
+# text_editor = [optional] text editor (default is no text editor): < vi | vim | nano | emacs >
 
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="0.3.8"
+v_svr_base_version="1.0.0"
 #--------------------------------------------------------------------#
 
 
@@ -46,7 +52,7 @@ function print_usage
 	echo "Where configuration file defines the following variables:"
 	echo "  Host:"
 	echo "    \$name => host name"
-	echo "    \$fqdn => domain <d1>...<dn>"
+	echo "    \$fqdn => domain <d1><dn>"
 	echo "    \$locale => e.g. en_AU.UTF-8"
 	echo "    \$region => e.g. Etc"
 	echo "    \$zone => e.g. UTC"
@@ -60,6 +66,11 @@ function print_usage
 	echo "  Optional:"
 	echo "    \$installer_http_proxy => Installer http proxy string: optional"
 	echo "    \$installer_https_proxy => Installer https proxy string: optional"
+	echo "    \$installer_ftp_proxy => Installer https proxy string: optional"
+	echo "    \$env_no_proxy => no_proxy global variable to add to /etc/environment"
+	echo "    \$env_http_proxy => http_proxy global variable to add to /etc/environment"
+	echo "    \$env_https_proxy => https_proxy global variable to add to /etc/environment"
+	echo "    \$env_ftp_proxy => ftp_proxy global variable to add to /etc/environment"
 	echo "    \$text_editor => Text editor: optional  (default is no text editor) < vi | vim | nano | emacs >"
 	echo '/* -- End Help -- */'
 }
@@ -77,18 +88,18 @@ function print_option_file_variables
 	echo "  Networking:"
 	echo "    Link name: $ip_link"
 	echo "    Search domain: $search_domain"
-	echo "    Bypass proxy: $env_no_proxy"
-	echo "    Http proxy: $env_http_proxy"
-	echo "    Https proxy: $env_https_proxy"
-	echo "    Ftp proxy: $env_ftp_proxy"
 	echo "    IPv4:"
 	echo "      Host IPv4 address: $ip_address"
 	echo "      Name server IPv4 address: $ns_ip_address"
 	echo "      Gateway IPv4 address: $gateway"
 	echo "  Optional:"
-	echo "    Installer http proxy: $installer_http_proxy"
-	echo "    Installer https proxy: $installer_https_proxy"
-	echo "    Installer ftp proxy: $installer_ftp_proxy"
+	echo "    /etc/environment no_proxy: $env_no_proxy"
+	echo "    /etc/environment http proxy: $env_http_proxy"
+	echo "    /etc/environment https proxy: $env_https_proxy"
+	echo "    /etc/environment ftp proxy: $env_ftp_proxy"
+	echo "    Install http proxy: $installer_http_proxy"
+	echo "    Install https proxy: $installer_https_proxy"
+	echo "    Install ftp proxy: $installer_ftp_proxy"
 	echo "    Text editor: $text_editor"
 }
 
@@ -107,19 +118,19 @@ function set_installer_proxy
 {
 	if [ -n "$installer_http_proxy" ];
 	then
-		echo -e "\e[32mExporting http_proxy as '$installer_http_proxy'...\e[0m"
+		echo -e "\e[32mExporting http_proxy as '$installer_http_proxy'\e[0m"
 		export http_proxy="$installer_http_proxy";
 		echo ''
 	fi
 	if [ -n "$installer_https_proxy" ];
 	then
-		echo -e "\e[32mExporting https_proxy as '$installer_https_proxy'...\e[0m"
+		echo -e "\e[32mExporting https_proxy as '$installer_https_proxy'\e[0m"
 		export https_proxy="$installer_https_proxy";
 		echo ''
 	fi
 	if [ -n "$installer_ftp_proxy" ];
 	then
-		echo -e "\e[32mExporting ftp_proxy as '$installer_ftp_proxy'...\e[0m"
+		echo -e "\e[32mExporting ftp_proxy as '$installer_ftp_proxy'\e[0m"
 		export ftp_proxy="$installer_ftp_proxy";
 		echo ''
 	fi
@@ -148,24 +159,30 @@ function set_editor
 
 function validate_options
 {
-	echo -e "\e[0;32mValidating values in configuration file '$1'...\e[0m"
-	echo -e "\e[0;32m  -> validating host IP address: $ip_address...\e[0m"
+	echo -e "\e[0;32mValidating values in configuration file '$1'\e[0m"
+	echo -e "\e[0;32m  -> validating host IP address: $ip_address\e[0m"
 	if ! ($(is_valid_ipv4_with_subnet_mask $ip_address))
 	then
 		echo -e "\e[0;31m       host IP address $ip_address is invalid\e[0m";
 		exit 1;
+	else
+		echo -e "\e[0;32m       => okay\e[0m";
 	fi
-	echo -e "\e[0;32m  -> validating name server IP address: $ns_ip_address...\e[0m"
+	echo -e "\e[0;32m  -> validating name server IP address: $ns_ip_address\e[0m"
 	if ! ($(is_valid_ipv4 $ns_ip_address))
 	then
 		echo -e "\e[0;31m       name server IP address $ns_ip_address is invalid\e[0m";
 		exit 1;
+	else
+		echo -e "\e[0;32m       => okay\e[0m";
 	fi
-	echo -e "\e[0;32m  -> validating default gateway IP address: $gateway...\e[0m"
+	echo -e "\e[0;32m  -> validating default gateway IP address: $gateway\e[0m"
 	if ! ($(is_valid_ipv4 $gateway))
 	then
 		echo -e "\e[0;31m       default gateway IP address $gateway is invalid\e[0m";
 		exit 1;
+	else
+		echo -e "\e[0;32m       => okay\e[0m";
 	fi
 	echo ''
 }
@@ -194,7 +211,7 @@ then
 fi
 
 # terminate if error - not sure what error though
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+if [ $? != 0 ] ; then echo "Terminating" >&2 ; exit 1 ; fi
 
 # Note the quotes around `$TEMP': they are essential!
 eval set -- "$TEMP"
@@ -230,7 +247,7 @@ set_editor
 #--------------------------------------------------------------------#
 # Pre flight checks
 #--------------------------------------------------------------------#
-echo -e "\e[0;32mPerforming preflight checks...\e[0m"
+echo -e "\e[0;32mPerforming preflight checks\e[0m"
 # check /dev/vda exists
 if [[ ! $(lsblk -o NAME) =~ "vda" ]]
 then
@@ -250,7 +267,7 @@ echo ''
 #--------------------------------------------------------------------#
 # Partition disk
 #--------------------------------------------------------------------#
-echo -e "\e[32mPatitioning disk...\e[0m"
+echo -e "\e[32mPatitioning disk\e[0m"
 current_task='Partioning disk'
 # delete existing data
 sgdisk -og $bootloader_device
@@ -271,7 +288,7 @@ echo ''
 #--------------------------------------------------------------------#
 # Format disk
 #--------------------------------------------------------------------#
-echo -e "\e[32mFormating root partition...\e[0m"
+echo -e "\e[32mFormating root partition\e[0m"
 mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 -L root $root_partition
 exit_on_error $? !!
 echo ''
@@ -281,7 +298,7 @@ echo ''
 # Get fastest mirrors
 #--------------------------------------------------------------------#
 if [ ! -f ./common/mirrorlist ]; then
-	echo -e "\e[0;32mGetting five quickest mirrors...\e[0m"
+	echo -e "\e[0;32mGetting five quickest mirrors\e[0m"
 	current_task='Getting quickest mirror'
 	# install needed packages
 	pacman --noconfirm -Sy pacman-contrib
@@ -289,38 +306,38 @@ if [ ! -f ./common/mirrorlist ]; then
 	# get WAN IP address
 	IP=$(curl -s ipecho.net/plain)
 	exit_on_error $? "$current_task"
-	echo -e "\e[0;32m  -> getting country code for IP $IP...\e[0m"
+	echo -e "\e[0;32m  -> getting country code for IP $IP\e[0m"
 	# ! Note: ipinfo.io has a rate limit of 1000 per day
 	countryCode=$(curl -s ipinfo.io/$IP/country)
 	exit_on_error $? "$current_task"
 	# if rate limited (does not return two characters):
 	if [ ${#countryCode} == 2 ]; then
-		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'...\e[0m"
+		echo -e "\e[0;32m  -> finding five quickest mirrors for '$countryCode'\e[0m"
 		backup_file "/etc/pacman.d/mirrorlist"
 		echo "#--------------------------------------#" > /etc/pacman.d/mirrorlist
 		echo "# Created by v_svr_bash.sh v$v_svr_base_version" >> /etc/pacman.d/mirrorlist
 		echo "#--------------------------------------#" >> /etc/pacman.d/mirrorlist
 		echo ''
 		if [[ -n "$installer_http_proxy" ]]; then
-			curl --proxy "$installer_http_proxy" --insecure -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			curl --proxy "$installer_http_proxy" --insecure --location -s "https://archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
 			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
 			exit_on_error $? "$current_task"
 		elif [[ -n "$installer_https_proxy" ]]; then
-			curl --proxy "$installer_https_proxy" -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			curl --proxy "$installer_https_proxy" --loction -s "https://archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
 			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
 			exit_on_error $? "$current_task"
 		else
-			curl -s "https://www.archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
+			curl --location -s "https://archlinux.org/mirrorlist/?country=$countryCode&use_mirror_status=on" \
 			| sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - >> /etc/pacman.d/mirrorlist
 			exit_on_error $? "$current_task"
 		fi
 	else
-		echo -e "\e[0;33m  -> country lookup failed for $IP...\e[0m"
+		echo -e "\e[0;33m  -> country lookup failed for $IP\e[0m"
 		echo -e "  -> Return string: $countryCode"
-		echo -e "\e[0;32m  -> using default mirror list...\e[0m"
+		echo -e "\e[0;32m  -> using default mirror list\e[0m"
 	fi
 else
-	echo -e "\e[0;32mUsing ./common/mirrorlist...\e[0m"
+	echo -e "\e[0;32mUsing ./common/mirrorlist\e[0m"
 	current_task='Copying supplied mirror list'
 	backup_file "/etc/pacman.d/mirrorlist"
 	cp ./common/mirrorlist /etc/pacman.d/
@@ -332,7 +349,7 @@ echo ''
 #--------------------------------------------------------------------#
 # Update install instance keys
 #--------------------------------------------------------------------#
-echo -e "\e[32mUpdating install instance keys...\e[0m"
+echo -e "\e[32mUpdating install instance keys\e[0m"
 current_task='Updaing Arch Linux keyring'
 pacman  --noconfirm -Sy archlinux-keyring
 exit_on_error $? "$current_task"
@@ -344,7 +361,7 @@ echo ''
 # Install
 #--------------------------------------------------------------------#
 # mount partitions
-echo -e "\e[32mMounting partitions...\e[0m"
+echo -e "\e[32mMounting partitions\e[0m"
 current_task='Mounting partitions'
 mount $root_partition /mnt
 exit_on_error $? "$current_task"
@@ -353,19 +370,19 @@ exit_on_error $? "$current_task"
 echo ''
 
 # install minimum packages
-echo -e "\e[32mInstalling base operating system...\e[0m"
+echo -e "\e[32mInstalling base operating system\e[0m"
 current_task='Installing Arch Linux'
 pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent $selected_editor
 exit_on_error $? "$current_task"
 echo ''
 
 # generate boot loaded file systems
-echo -e "\e[32mGenerating /etc/fstab...\e[0m"
+echo -e "\e[32mGenerating /etc/fstab\e[0m"
 genfstab -U /mnt >> /mnt/etc/fstab
 exit_on_error $? "$current_task"
 echo ''
 
-echo -e "\e[32mCopying configuration files and base scripts...\e[0m"
+echo -e "\e[32mCopying configuration files and base scripts\e[0m"
 # add nftables base configuration
 current_task='Configuring nftables firewall'
 cp -p ./v_svr_base/nftables.conf /mnt/etc
@@ -402,7 +419,7 @@ echo ''
 #--------------------------------------------------------------------#
 
 # configure ssh: no root login
-echo -e "\e[32mSecuring sshd...\e[0m"
+echo -e "\e[32mSecuring sshd\e[0m"
 current_task='Securing sshd'
 echo "" >> /mnt/etc/ssh/sshd_config
 exit_on_error $? "$current_task"
@@ -419,7 +436,7 @@ exit_on_error $? "$current_task"
 echo ''
 
 # configure sudo
-echo -e "\e[32mConfiguring sudo...\e[0m"
+echo -e "\e[32mConfiguring sudo\e[0m"
 current_task='Configuring sudo'
 tmpAdminUser=$admin
 adminUser=${tmpAdminUser,,}
@@ -440,7 +457,7 @@ exit_on_error $? "$current_task"
 echo ''
 
 # configure networking
-echo -e "\e[32mConfiguring network...\e[0m"
+echo -e "\e[32mConfiguring network\e[0m"
 current_task='Configuring network'
 #  name resolution
 echo "" >> /mnt/etc/resolve.conf
@@ -490,7 +507,7 @@ echo ''
 current_task='Proxy settings'
 if [[ -n "$env_http_proxy" ||  -n "$env_https_proxy" || -n "$env_ftp_proxy" || -n "$env_no_proxy" ]];
 then
-	echo -e "\e[32mAdding global proxy settings to /etc/environment...\e[0m"
+	echo -e "\e[32mAdding global proxy settings to /etc/environment\e[0m"
 	echo "" >> /mnt/etc/environment
 	exit_on_error $? "$current_task"
 	echo "" >> /mnt/etc/environment
@@ -537,12 +554,12 @@ echo ''
 #--------------------------------------------------------------------#
 # Configure chroot script
 #--------------------------------------------------------------------#
-echo -e "\e[32mEnabling functions for chroot script...\e[0m"
+echo -e "\e[32mEnabling functions for chroot script\e[0m"
 current_task='Enabling functions for chroot script'
 cp -p ./common/functions /mnt
 exit_on_error $? "$current_task"
 # copy inside arch-chroot script
-echo -e "\e[32mConfiguring chroot script...\e[0m"
+echo -e "\e[32mConfiguring chroot script\e[0m"
 current_task='Configuring chroot script'
 cp -p ./v_svr_base/v_svr_base_chroot.sh /mnt
 exit_on_error $? "$current_task"

@@ -52,15 +52,15 @@ function backup_file()
 	then
 		#get unique filename
 		backupFilename="$1".`date --utc +"%Y-%m-%dT%H%M%SZ"`
-		exit_on_error $? "$current_task"
+		exit_on_error $? "$current_task: backup file $backupFilename"
 		while [ -f "$backupFilename" ]
 		do
 			sleep 1s;
 			backupFilename="$1".`date --utc +"%Y-%m-%dT%H%M%SZ"`
-			exit_on_error $? "$current_task"
+			exit_on_error $? "$current_task: backup file $backupFilename"
 		done
 		# create backup file
 		cp -p "$1" "$backupFilename";
-		exit_on_error $? "$current_task"
+		exit_on_error $? "$current_task: backup file $backupFilename"
 	fi
 }

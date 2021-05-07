@@ -5,7 +5,7 @@ source ./functions
 # Defaults
 # - <ALL_CAPS> replaced by v_svr_base.sh
 #--------------------------------------------------------------------#
-v_svr_base_chroot_version="0.5.3"
+v_svr_base_chroot_version="1.0.0"
 name=GR_NAME
 fqdn=GR_FQDN
 bootloader_device=GR_BOOTLOADERDEVICE
@@ -20,7 +20,7 @@ zone=GR_ZONE
 #--------------------------------------------------------------------#
 
 # locale
-echo -e "\e[32mSetting timezone and clock...\e[0m"
+echo -e "\e[32mSetting timezone and clock\e[0m"
 current_task='Setting timezone'
 ln -s -f /usr/share/zoneinfo/$region/$zone /etc/localtime
 exit_on_error $? "$current_task"
@@ -29,7 +29,7 @@ exit_on_error $? "$current_task"
 echo ''
 
 # set locale to en_AU.UTF-8
-echo -e "\e[32mSeting locale...\e[0m"
+echo -e "\e[32mSeting locale\e[0m"
 current_task='Setting locale'
 sed -e s/"#$locale"/"$locale"/g /etc/locale.gen > /etc/locale.gen.tmp && mv --force /etc/locale.gen.tmp /etc/locale.gen
 exit_on_error $? "$current_task"
@@ -43,7 +43,7 @@ cat /etc/locale.conf
 echo ''
 
 # Add hostname
-echo -e "\e[32mSeting host name...\e[0m"
+echo -e "\e[32mSeting host name\e[0m"
 current_task='Setting host name'
 echo "#--------------------------------------#" >> /etc/hostname
 exit_on_error $? "$current_task"
@@ -73,12 +73,12 @@ echo ''
 #  post pacstrap
 # if this script makes changes to RAM disk image settings then 
 #  reinstate below lines
-#echo -e "\e[32mConfigure RAM disk image...\e[0m"
+#echo -e "\e[32mConfigure RAM disk image\e[0m"
 #mkinitcpio -p linux
 #echo ''
 
 # enable 1 GiB swap file
-echo -e "\e[32mCreating 1 GiB swap file...\e[0m"
+echo -e "\e[32mCreating 1 GiB swap file\e[0m"
 current_task='Adding swap file'
 dd if=/dev/zero of=/swapfile bs=1M count=1024
 exit_on_error $? "$current_task"
@@ -101,42 +101,42 @@ exit_on_error $? "$current_task"
 echo ''
 
 # enable network
-echo -e "\e[32mEnabling network...\e[0m"
+echo -e "\e[32mEnabling network\e[0m"
 current_task='Enabling network'
 systemctl enable systemd-networkd.service
 exit_on_error $? "$current_task"
 echo ''
 
 # enable nftables firewall
-echo -e "\e[32mEnabling nftables firewall...\e[0m"
+echo -e "\e[32mEnabling nftables firewall\e[0m"
 current_task='Enable nftables firewall'
 systemctl enable nftables.service
 exit_on_error $? "$current_task"
 echo ''
 
 #enable ssh daemon
-echo -e "\e[32mEnabling ssh access...\e[0m"
+echo -e "\e[32mEnabling ssh access\e[0m"
 current_task='Enable ssh daemon service'
 systemctl enable sshd.service
 exit_on_error $? "$current_task"
 echo ''
 
 # enable NTP datetime synchronisation
-echo -e "\e[32mEnabling NTP datetime synchronisation...\e[0m"
+echo -e "\e[32mEnabling NTP datetime synchronisation\e[0m"
 current_task='Enablint time synchronisation (NTP)'
 systemctl enable systemd-timesyncd.service
 exit_on_error $? "$current_task"
 echo ''
 
 # enable qemu guest agent
-echo -e "\e[32mEnabling qemu guest agent...\e[0m"
+echo -e "\e[32mEnabling qemu guest agent\e[0m"
 current_task='Installing qemu guest agent'
 systemctl enable qemu-guest-agent.service
 exit_on_error $? "$current_task"
 echo ''
 
 # install boot loaders
-echo -e "\e[32mInstalling and configuring grub2 boot loader...\e[0m"
+echo -e "\e[32mInstalling and configuring grub2 boot loader\e[0m"
 current_task='Installing and configuring grub2 boot loader'
 grub-install --target=i386-pc --boot-directory /boot $bootloader_device
 exit_on_error $? "$current_task"
