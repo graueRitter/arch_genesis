@@ -1,0 +1,66 @@
+#!/bin/bash
+
+#--------------------------------------------------------------------#
+# Common functions
+#--------------------------------------------------------------------#
+
+# from https://intoli.com/blog/exit-on-errors-in-bash-scripts/
+# usage:
+#   <some command>
+#   exit_on_error $? $2
+#
+function exit_on_error()
+{
+	exit_code=$1
+	last_command=${@:2}
+	if [ $exit_code -ne 0 ]; then
+		>&2 echo -e "\e[0;31m\"${last_command}\" command failed with exit code ${exit_code}.\e[0m"
+		echo ''
+		exit $exit_code
+	fi
+}
+
+
+function is_valid_ipv4()
+{
+	#[[ "$1" =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]
+
+	if [[ "$1" =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]
+	then
+		true;
+	else
+		false;
+	fi
+}
+
+function is_valid_ipv4_with_subnet_mask()
+{
+	#[[ "$1" =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([0-9]|[1-2][0-9]|3[0-2])$ ]]
+
+	if [[ "$1" =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([0-9]|[1-2][0-9]|3[0-2])$ ]]
+	then
+		true;
+	else
+		false;
+	fi
+}
+
+function backup_file()
+{
+	# if file exists
+	if [ -f "$1" ]
+	then
+		#get unique filename
+		backupFilename="$1".`date --utc +"%Y-%m-%dT%H%M%SZ"`
+		exit_on_error $? "$current_task: backup file $backupFilename"
+		while [ -f "$backupFilename" ]
+		do
+			sleep 1s;
+			backupFilename="$1".`date --utc +"%Y-%m-%dT%H%M%SZ"`
+			exit_on_error $? "$current_task: backup file $backupFilename"
+		done
+		# create backup file
+		cp -p "$1" "$backupFilename";
+		exit_on_error $? "$current_task: backup file $backupFilename"
+	fi
+}

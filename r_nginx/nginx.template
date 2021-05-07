@@ -1,5 +1,7 @@
-# either IP: www.xxx.yyy.zzz, or fqdn: www.example.com
+# either IP: www.xxx.yyy.zzz, or fqdn: e.g. www.example.com
 serverURL=''
+
+# optional - if not specified r_nginx.sh will create self signed certifacte based on fqdn
 # file path and file name of the certificate authority certificate
 serverCertCA=''
 # file path and file name of the server public certificate signed by the CA (above)
