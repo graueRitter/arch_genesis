@@ -24,13 +24,14 @@ source ./common/functions
 # env_https_proxy = [optional] https proxy to add to /etc/environment file
 # env_ftp_proxy = [optional] ftp proxy to add to /etc/environment file
 # text_editor = [optional] text editor (default is no text editor): < vi | vim | nano | emacs >
+# terminal_multiplexor = [optional] terminal multiplexor (default is no terminal multiplexor): < screen | tmux >
 
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
 # Defaults
 #--------------------------------------------------------------------#
-v_svr_base_version="1.0.0"
+v_svr_base_version="1.1.0"
 #--------------------------------------------------------------------#
 
 
@@ -72,6 +73,7 @@ function print_usage
 	echo "    \$env_https_proxy => https_proxy global variable to add to /etc/environment"
 	echo "    \$env_ftp_proxy => ftp_proxy global variable to add to /etc/environment"
 	echo "    \$text_editor => Text editor: optional  (default is no text editor) < vi | vim | nano | emacs >"
+	echo "    \$terminal_multiplexor => Terminal multiplexor: optional  (default is no terminal multiplexor) < screen | tmux >"
 	echo '/* -- End Help -- */'
 }
 
@@ -101,6 +103,7 @@ function print_option_file_variables
 	echo "    Install https proxy: $installer_https_proxy"
 	echo "    Install ftp proxy: $installer_ftp_proxy"
 	echo "    Text editor: $text_editor"
+	echo "    Terminal multiplexor: $terminal_multiplexor"
 }
 
 function print_partition_prerequisites
@@ -153,6 +156,21 @@ function set_editor
 			;;
 		*)
 			selected_editor=''
+			;;
+	esac
+}
+
+function set_terminal_multiplexor
+{
+	case "$terminal_multiplexor" in
+		screen)
+			selected_terminal_multiplexor='screen'
+			;;
+		tmux)
+			selected_terminal_multiplexor='tmux'
+			;;
+		*)
+			selected_terminal_multiplexor=''
 			;;
 	esac
 }
@@ -242,6 +260,8 @@ validate_options $1
 set_installer_proxy
 # set text editor if wanted
 set_editor
+# set terminal multiplexor if wanted
+set_terminal_multiplexor
 #--------------------------------------------------------------------#
 
 #--------------------------------------------------------------------#
@@ -372,7 +392,7 @@ echo ''
 # install minimum packages
 echo -e "\e[32mInstalling base operating system\e[0m"
 current_task='Installing Arch Linux'
-pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent $selected_editor
+pacstrap /mnt base linux linux-firmware sudo grub intel-ucode nftables openssh qemu-guest-agent $selected_editor $selected_terminal_multiplexor
 exit_on_error $? "$current_task"
 echo ''
 
