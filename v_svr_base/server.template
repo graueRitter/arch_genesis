@@ -50,3 +50,9 @@ env_ftp_proxy=''
 #  vi, vim, nano, emacs
 text_editor=''
 #**********************#
+
+# terminal multiplexors
+# valid terminal multiplexors:
+#  screen, tmux
+terminal_multiplexor=''
+#**********************#
